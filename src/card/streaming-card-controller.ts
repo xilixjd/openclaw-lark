@@ -343,7 +343,20 @@ export class StreamingCardController {
   async onPartialReply(payload: ReplyPayload): Promise<void> {
     if (!this.shouldProceed('onPartialReply')) return;
 
-    const text = stripReasoningTags(payload.text ?? '');
+    // Use splitReasoningText (consistent with onDeliver/onReasoningStream)
+    // to extract <think> tag content before stripping it from the answer.
+    // Previously only stripReasoningTags was called, silently discarding
+    // any thinking content that the LLM wrapped in <think> tags.
+    const rawText = payload.text ?? '';
+    const split = splitReasoningText(rawText);
+    if (split.reasoningText) {
+      if (!this.reasoning.reasoningStartTime) {
+        this.reasoning.reasoningStartTime = Date.now();
+      }
+      this.reasoning.accumulatedReasoningText = split.reasoningText;
+      this.reasoning.isReasoningPhase = true;
+    }
+    const text = split.answerText ?? stripReasoningTags(rawText);
     log.debug('onPartialReply', { len: text.length });
     if (!text) return;
 
