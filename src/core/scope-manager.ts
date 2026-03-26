@@ -39,7 +39,7 @@
  * ```
  */
 
-import { type ToolActionKey, type ToolScopeMapping, TOOL_SCOPES } from './tool-scopes';
+import { TOOL_SCOPES, type ToolActionKey, type ToolScopeMapping } from './tool-scopes';
 
 // ===== 导出类型和数据 =====
 

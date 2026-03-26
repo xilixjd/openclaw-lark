@@ -9,8 +9,7 @@
  * unset fields fall back to the top-level defaults.
  */
 
-import { DEFAULT_ACCOUNT_ID } from 'openclaw/plugin-sdk/account-id';
-import { normalizeAccountId as _sdkNormalizeAccountId } from 'openclaw/plugin-sdk/account-id';
+import { DEFAULT_ACCOUNT_ID, normalizeAccountId as _sdkNormalizeAccountId  } from 'openclaw/plugin-sdk/account-id';
 
 const normalizeAccountId: (id: string) => string | undefined =
     typeof _sdkNormalizeAccountId === 'function'
@@ -19,7 +18,7 @@ const normalizeAccountId: (id: string) => string | undefined =
 
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
 
-import type { FeishuConfig, LarkBrand, LarkAccount, LarkCredentials, ConfiguredLarkAccount } from './types';
+import type { ConfiguredLarkAccount, FeishuConfig, LarkAccount, LarkBrand, LarkCredentials } from './types';
 
 // ---------------------------------------------------------------------------
 // Internal helpers

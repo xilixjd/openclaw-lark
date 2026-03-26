@@ -18,11 +18,11 @@ import { registerFeishuOAuthTool } from './src/tools/oauth';
 import { registerFeishuOAuthBatchAuthTool } from './src/tools/oauth-batch-auth';
 import { registerAskUserQuestionTool } from './src/tools/ask-user-question';
 import {
-  runDiagnosis,
-  formatDiagReportCli,
-  traceByMessageId,
-  formatTraceOutput,
   analyzeTrace,
+  formatDiagReportCli,
+  formatTraceOutput,
+  runDiagnosis,
+  traceByMessageId,
 } from './src/commands/diagnose';
 import { registerCommands } from './src/commands/index';
 import { larkLogger } from './src/core/lark-logger';
@@ -104,7 +104,7 @@ const plugin = {
   name: 'Feishu',
   description: 'Lark/Feishu channel plugin with im/doc/wiki/drive/task/calendar tools',
   configSchema: emptyPluginConfigSchema(),
-  register(api: OpenClawPluginApi) {
+  register(api: OpenClawPluginApi): void {
     LarkClient.setRuntime(api.runtime);
     api.registerChannel({ plugin: feishuPlugin });
 

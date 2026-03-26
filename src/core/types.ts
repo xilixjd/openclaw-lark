@@ -10,9 +10,9 @@
  */
 
 import type {
+  FeishuAccountConfigSchema,
   FeishuConfigSchema,
   FeishuGroupSchema,
-  FeishuAccountConfigSchema,
   UATConfigSchema,
   z,
 } from './config-schema';

@@ -5,11 +5,11 @@
  * Register all chat commands (/feishu_diagnose, /feishu_doctor, /feishu_auth, /feishu).
  */
 
-import type { OpenClawPluginApi, OpenClawConfig } from 'openclaw/plugin-sdk';
-import { runDiagnosis, formatDiagReportText } from './diagnose';
+import type { OpenClawConfig, OpenClawPluginApi } from 'openclaw/plugin-sdk';
+import { getPluginVersion } from '../core/version';
+import { formatDiagReportText, runDiagnosis } from './diagnose';
 import { runFeishuDoctor } from './doctor';
 import { runFeishuAuth } from './auth';
-import { getPluginVersion } from '../core/version';
 
 import type { FeishuLocale } from './locale';
 

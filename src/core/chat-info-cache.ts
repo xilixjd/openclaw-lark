@@ -12,6 +12,7 @@
  * - `group_message_type`: "chat" | "thread" (only for chat_mode=group)
  */
 
+import type * as Lark from '@larksuiteoapi/node-sdk';
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
 import { larkLogger } from './lark-logger';
 
@@ -20,12 +21,16 @@ import { larkLogger } from './lark-logger';
 // lark-client.ts calls injectLarkClient() at module init time, so the
 // reference is available before any message processing begins.
 // ---------------------------------------------------------------------------
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let _LarkClient: any = null;
+
+/** Minimal structural type for LarkClient class (avoids circular import). */
+interface LarkClientStatic {
+  fromCfg(cfg: ClawdbotConfig, accountId?: string): { sdk: Lark.Client };
+}
+
+let _LarkClient: LarkClientStatic | null = null;
 
 /** @internal Called by lark-client.ts at module init time. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function injectLarkClient(cls: any): void {
+export function injectLarkClient(cls: LarkClientStatic): void {
   _LarkClient = cls;
 }
 

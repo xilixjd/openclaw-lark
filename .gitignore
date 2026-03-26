@@ -4,14 +4,16 @@ node_modules/
 # feishu plugin build artifacts
 dist/
 release/
-*.mjs
-*.d.mts
 src/tools/docs/
 
 *.log
 
-# .idea
+# IDE / AI config
 .idea/
+.vscode/
+.claude/
+.cursor/
+.windsurf/
 
 
 # Internal documentation directories
@@ -20,3 +22,5 @@ src/tools/docs/
 
 /**/package-lock.json
 /**/.DS_Store
+
+.eslintcache

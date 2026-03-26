@@ -16,12 +16,12 @@ import { getStoredToken } from '../core/token-store';
 import { getLarkAccount } from '../core/accounts';
 import { getTicket } from '../core/lark-ticket';
 import { LarkClient } from '../core/lark-client';
-import { executeAuthorize } from './oauth';
 import { formatLarkError } from '../core/api-error';
 import { filterSensitiveScopes } from '../core/tool-scopes';
-import { json, registerTool } from './oapi/helpers';
 import { openPlatformDomain } from '../core/domains';
 import { larkLogger } from '../core/lark-logger';
+import { json, registerTool } from './oapi/helpers';
+import { executeAuthorize } from './oauth';
 
 const log = larkLogger('tools/oauth-batch-auth');
 
@@ -35,7 +35,7 @@ const FeishuOAuthBatchAuthSchema = Type.Object(
   },
 );
 
-export function registerFeishuOAuthBatchAuthTool(api: OpenClawPluginApi) {
+export function registerFeishuOAuthBatchAuthTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
 
   const cfg = api.config;

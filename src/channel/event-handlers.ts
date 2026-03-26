@@ -9,7 +9,7 @@
  * dependencies needed to process the event.
  */
 
-import type { FeishuMessageEvent, FeishuBotAddedEvent, FeishuReactionCreatedEvent } from '../messaging/types';
+import type { FeishuBotAddedEvent, FeishuMessageEvent, FeishuReactionCreatedEvent } from '../messaging/types';
 import { handleFeishuMessage } from '../messaging/inbound/handler';
 import { handleFeishuReaction, resolveReactionContext } from '../messaging/inbound/reaction-handler';
 import { isMessageExpired } from '../messaging/inbound/dedup';
@@ -17,7 +17,7 @@ import { withTicket } from '../core/lark-ticket';
 import { larkLogger } from '../core/lark-logger';
 import { handleCardAction } from '../tools/auto-auth';
 import { handleAskUserAction } from '../tools/ask-user-question';
-import { enqueueFeishuChatTask, buildQueueKey, hasActiveTask, getActiveDispatcher } from './chat-queue';
+import { buildQueueKey, enqueueFeishuChatTask, getActiveDispatcher, hasActiveTask } from './chat-queue';
 import { extractRawTextFromEvent, isLikelyAbortText } from './abort-detect';
 import type { MonitorContext } from './types';
 

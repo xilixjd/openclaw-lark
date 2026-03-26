@@ -16,27 +16,28 @@
  *     them).
  */
 
-import type { OpenClawPluginApi, ClawdbotConfig } from 'openclaw/plugin-sdk';
-import type { ConfiguredLarkAccount } from '../core/types';
+import type { ClawdbotConfig, OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
+import type { ConfiguredLarkAccount } from '../core/types';
 import { getLarkAccount } from '../core/accounts';
-import { assertOwnerAccessStrict, OwnerAccessDeniedError } from '../core/owner-policy';
+import { OwnerAccessDeniedError, assertOwnerAccessStrict } from '../core/owner-policy';
 import { LarkClient } from '../core/lark-client';
 import { getAppGrantedScopes } from '../core/app-scope-checker';
 import type { LarkTicket } from '../core/lark-ticket';
-import { getTicket, withTicket } from '../core/lark-ticket';
+import { getTicket } from '../core/lark-ticket';
 import { larkLogger } from '../core/lark-logger';
 
 const log = larkLogger('tools/oauth');
-import { handleFeishuMessage } from '../messaging/inbound/handler';
 import { formatLarkError } from '../core/api-error';
-import { enqueueFeishuChatTask } from '../channel/chat-queue';
-import { requestDeviceAuthorization, pollDeviceToken } from '../core/device-flow';
-import { getStoredToken, setStoredToken, tokenStatus, type StoredUAToken } from '../core/token-store';
+import { pollDeviceToken, requestDeviceAuthorization } from '../core/device-flow';
+import { type StoredUAToken, getStoredToken, setStoredToken, tokenStatus } from '../core/token-store';
 import { revokeUAT } from '../core/uat-client';
 import { createCardEntity, sendCardByCardId, updateCardKitCardForAuth } from '../card/cardkit';
-import { buildAuthCard, buildAuthSuccessCard, buildAuthFailedCard, buildAuthIdentityMismatchCard } from './oauth-cards';
-import { json, registerTool } from './oapi/helpers';
+import { dispatchSyntheticTextMessage } from '../messaging/inbound/synthetic-message';
+import { buildAuthCard, buildAuthFailedCard, buildAuthIdentityMismatchCard, buildAuthSuccessCard } from './oauth-cards';
+import { formatToolResult, registerTool } from './helpers';
+
+const json = formatToolResult;
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -133,7 +134,7 @@ async function verifyTokenIdentity(
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuOAuthTool(api: OpenClawPluginApi) {
+export function registerFeishuOAuthTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
 
   const cfg = api.config;
@@ -617,26 +618,7 @@ export async function executeAuthorize(
           log.info('skipSyntheticMessage=true, skipping synthetic message');
         } else
           try {
-            // Use a unique message_id for MessageSid (avoids SDK dedup),
-            // but pass the real message ID as replyToMessageId so that
-            // typing indicators, reply-to threading, and delivery work.
             const syntheticMsgId = `${ticket.messageId}:auth-complete`;
-
-            const syntheticEvent = {
-              sender: {
-                sender_id: { open_id: senderOpenId },
-              },
-              message: {
-                message_id: syntheticMsgId,
-                chat_id: chatId,
-                chat_type: ticket.chatType ?? ('p2p' as const),
-                message_type: 'text',
-                content: JSON.stringify({
-                  text: '我已完成飞书账号授权，请继续执行之前的操作。',
-                }),
-                thread_id: ticket.threadId,
-              },
-            };
 
             // Provide a minimal runtime so reply-dispatcher
             // does not crash on `params.runtime.log?.()`.
@@ -645,38 +627,19 @@ export async function executeAuthorize(
               error: (msg: string) => log.error(msg),
             };
 
-            const { status, promise } = enqueueFeishuChatTask({
+            const status = await dispatchSyntheticTextMessage({
+              cfg,
               accountId,
               chatId,
+              senderOpenId,
+              text: '我已完成飞书账号授权，请继续执行之前的操作。',
+              syntheticMessageId: syntheticMsgId,
+              replyToMessageId: ticket.messageId,
+              chatType: ticket.chatType,
               threadId: ticket.threadId,
-              task: async () => {
-                await withTicket(
-                  {
-                    messageId: syntheticMsgId,
-                    chatId,
-                    accountId,
-                    startTime: Date.now(),
-                    senderOpenId,
-                    chatType: ticket.chatType,
-                    threadId: ticket.threadId,
-                  },
-                  () =>
-                    handleFeishuMessage({
-                      cfg,
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      event: syntheticEvent as any,
-                      accountId,
-                      forceMention: true,
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      runtime: syntheticRuntime as any,
-                      replyToMessageId: ticket.messageId,
-                    }),
-                );
-              },
+              runtime: syntheticRuntime,
             });
-
             log.info(`synthetic message queued (${status})`);
-            await promise;
             log.info('synthetic message dispatched after successful auth');
           } catch (e) {
             log.warn(`failed to send synthetic message after auth: ${e}`);

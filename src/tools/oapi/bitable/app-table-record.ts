@@ -21,7 +21,7 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 
-import { json, createToolContext, assertLarkOk, handleInvokeErrorWithAutoAuth, registerTool, StringEnum } from '../helpers';
+import { StringEnum, assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json, registerTool } from '../helpers';
 import type { PaginatedData } from '../sdk-types';
 
 // ---------------------------------------------------------------------------
@@ -242,7 +242,7 @@ type FeishuBitableAppTableRecordParams =
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuBitableAppTableRecordTool(api: OpenClawPluginApi) {
+export function registerFeishuBitableAppTableRecordTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 

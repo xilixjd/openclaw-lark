@@ -14,23 +14,23 @@ import type { ChannelThreadingToolContext } from 'openclaw/plugin-sdk/channel-co
 import { DEFAULT_ACCOUNT_ID } from 'openclaw/plugin-sdk/account-id';
 import { PAIRING_APPROVED_MESSAGE } from 'openclaw/plugin-sdk/channel-status';
 import type { LarkAccount } from '../core/types';
-import { getLarkAccount, getLarkAccountIds, getDefaultLarkAccountId } from '../core/accounts';
-import {
-  listFeishuDirectoryPeers,
-  listFeishuDirectoryGroups,
-  listFeishuDirectoryPeersLive,
-  listFeishuDirectoryGroupsLive,
-} from './directory';
+import { getDefaultLarkAccountId, getLarkAccount, getLarkAccountIds } from '../core/accounts';
 import { feishuOutbound } from '../messaging/outbound/outbound';
 import { feishuMessageActions } from '../messaging/outbound/actions';
 import { resolveFeishuGroupToolPolicy } from '../messaging/inbound/policy';
 import { LarkClient } from '../core/lark-client';
 import { sendMessageFeishu } from '../messaging/outbound/send';
-import { normalizeFeishuTarget, looksLikeFeishuId } from '../core/targets';
+import { looksLikeFeishuId, normalizeFeishuTarget } from '../core/targets';
 import { triggerOnboarding } from '../tools/onboarding-auth';
-import { setAccountEnabled, applyAccountConfig, deleteAccount, collectFeishuSecurityWarnings } from './config-adapter';
 import { larkLogger } from '../core/lark-logger';
 import { FEISHU_CONFIG_JSON_SCHEMA } from '../core/config-schema';
+import { applyAccountConfig, collectFeishuSecurityWarnings, deleteAccount, setAccountEnabled } from './config-adapter';
+import {
+  listFeishuDirectoryGroups,
+  listFeishuDirectoryGroupsLive,
+  listFeishuDirectoryPeers,
+  listFeishuDirectoryPeersLive,
+} from './directory';
 
 const pluginLog = larkLogger('channel/plugin');
 

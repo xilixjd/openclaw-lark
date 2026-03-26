@@ -14,10 +14,10 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 import type { ToolClient } from '../helpers';
-import { assertLarkOk, createToolContext, getFirstAccount, handleInvokeErrorWithAutoAuth, json, registerTool, StringEnum } from '../helpers';
+import { StringEnum, assertLarkOk, createToolContext, getFirstAccount, handleInvokeErrorWithAutoAuth, json, registerTool } from '../helpers';
 import { dateTimeToSecondsString, parseTimeRangeToSeconds } from './time-utils';
-import { formatMessageList, type FormattedMessage } from './format-messages';
-import { getUATUserName, batchResolveUserNamesAsUser } from './user-name-uat';
+import { type FormattedMessage, formatMessageList } from './format-messages';
+import { batchResolveUserNamesAsUser, getUATUserName } from './user-name-uat';
 
 // ===========================================================================
 // Shared helpers

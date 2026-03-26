@@ -11,7 +11,7 @@ import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { registerChatSearchTool } from './chat';
 import { registerChatMembersTool } from './members';
 
-export function registerFeishuChatTools(api: OpenClawPluginApi) {
+export function registerFeishuChatTools(api: OpenClawPluginApi): void {
   const registered: string[] = [];
   if (registerChatSearchTool(api)) registered.push('feishu_chat');
   if (registerChatMembersTool(api)) registered.push('feishu_chat_members');

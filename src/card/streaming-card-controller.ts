@@ -19,7 +19,7 @@ import { larkLogger } from '../core/lark-logger';
 import { LarkClient } from '../core/lark-client';
 import { registerShutdownHook } from '../core/shutdown-hooks';
 import { sendCardFeishu, updateCardFeishu } from '../messaging/outbound/send';
-import { buildCardContent, STREAMING_ELEMENT_ID, splitReasoningText, stripReasoningTags, toCardKit2 } from './builder';
+import { STREAMING_ELEMENT_ID, buildCardContent, splitReasoningText, stripReasoningTags, toCardKit2 } from './builder';
 import {
   FEISHU_CARD_TABLE_LIMIT,
   isCardRateLimitError,

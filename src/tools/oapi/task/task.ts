@@ -17,13 +17,13 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 import {
-  json,
-  createToolContext,
-  parseTimeToTimestampMs,
-  assertLarkOk,
-  handleInvokeErrorWithAutoAuth,
-  registerTool,
   StringEnum,
+  assertLarkOk,
+  createToolContext,
+  handleInvokeErrorWithAutoAuth,
+  json,
+  parseTimeToTimestampMs,
+  registerTool,
 } from '../helpers';
 import type { PaginatedData, TaskCreateData } from '../sdk-types';
 
@@ -284,7 +284,7 @@ type FeishuTaskTaskParams =
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuTaskTaskTool(api: OpenClawPluginApi) {
+export function registerFeishuTaskTaskTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 

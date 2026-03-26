@@ -31,7 +31,7 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
 import type { ConfiguredLarkAccount } from './types';
-import { getLarkAccount, getEnabledLarkAccounts } from './accounts';
+import { getEnabledLarkAccounts, getLarkAccount } from './accounts';
 import { LarkClient, getResolvedConfig } from './lark-client';
 import { getTicket } from './lark-ticket';
 import { callWithUAT } from './uat-client';
@@ -43,14 +43,14 @@ import { type ToolActionKey, getRequiredScopes } from './scope-manager';
 import { rawLarkRequest } from './raw-request';
 import { assertOwnerAccessStrict } from './owner-policy';
 import {
-  LARK_ERROR,
-  NeedAuthorizationError,
   AppScopeCheckFailedError,
   AppScopeMissingError,
+  LARK_ERROR,
+  NeedAuthorizationError,
   UserAuthRequiredError,
   UserScopeInsufficientError,
 } from './auth-errors';
-import type { ScopeErrorInfo, AuthHint, TryInvokeResult } from './auth-errors';
+import type { AuthHint, ScopeErrorInfo, TryInvokeResult } from './auth-errors';
 
 // Re-export for backward compatibility — 下游模块可继续从 tool-client 导入
 export {

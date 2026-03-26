@@ -6,14 +6,13 @@
  */
 
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
-import type { FeishuSendResult } from '../types';
+import type { FeishuSendResult, MentionInfo  } from '../types';
 import { createAccountScopedConfig } from '../../core/accounts';
 import { LarkClient } from '../../core/lark-client';
 import { normalizeFeishuTarget, normalizeMessageId, resolveReceiveIdType } from '../../core/targets';
 import { runWithMessageUnavailableGuard } from '../../core/message-unavailable';
-import type { MentionInfo } from '../types';
 import { optimizeMarkdownStyle } from '../../card/markdown-style';
-import { buildMentionedMessage, buildMentionedCardContent } from '../inbound/mention';
+import { buildMentionedCardContent, buildMentionedMessage } from '../inbound/mention';
 
 // ---------------------------------------------------------------------------
 // Types

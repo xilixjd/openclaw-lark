@@ -11,17 +11,17 @@
 
 import type { ClawdbotConfig, RuntimeEnv } from 'openclaw/plugin-sdk';
 import type { HistoryEntry } from 'openclaw/plugin-sdk/reply-history';
-import { getLarkAccount, getEnabledLarkAccounts } from '../core/accounts';
+import { getEnabledLarkAccounts, getLarkAccount } from '../core/accounts';
 import { LarkClient } from '../core/lark-client';
 import { MessageDedup } from '../messaging/inbound/dedup';
 import { larkLogger } from '../core/lark-logger';
 import { drainShutdownHooks } from '../core/shutdown-hooks';
-import type { MonitorFeishuOpts, MonitorContext } from './types';
+import type { MonitorContext, MonitorFeishuOpts } from './types';
 import {
-  handleMessageEvent,
-  handleReactionEvent,
   handleBotMembershipEvent,
   handleCardActionEvent,
+  handleMessageEvent,
+  handleReactionEvent,
 } from './event-handlers';
 
 const mlog = larkLogger('channel/monitor');

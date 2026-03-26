@@ -30,7 +30,7 @@ import { getAppGrantedScopes, missingScopes } from '../core/app-scope-checker';
 import { getAppOwnerFallback } from '../core/app-owner-fallback';
 import { getStoredToken, tokenStatus } from '../core/token-store';
 
-import { filterSensitiveScopes, REQUIRED_APP_SCOPES, TOOL_SCOPES } from '../core/tool-scopes';
+import { REQUIRED_APP_SCOPES, TOOL_SCOPES, filterSensitiveScopes } from '../core/tool-scopes';
 import { probeFeishu } from '../channel/probe';
 import { AppScopeCheckFailedError } from '../core/tool-client';
 import { getPluginVersion } from '../core/version';
@@ -45,8 +45,10 @@ import { openPlatformDomain } from '../core/domains';
 type CheckStatus = 'pass' | 'warn' | 'fail';
 
 export type { FeishuLocale } from './locale';
+
+import type { FeishuLocale } from './locale';
 /** @deprecated Use FeishuLocale instead */
-export type DoctorLocale = import('./locale').FeishuLocale;
+export type DoctorLocale = FeishuLocale;
 
 // ---------------------------------------------------------------------------
 // I18n text map

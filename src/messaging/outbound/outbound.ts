@@ -15,9 +15,9 @@ import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
 import type { ChannelOutboundAdapter } from 'openclaw/plugin-sdk/channel-send-result';
 import type { FeishuSendResult } from '../types';
 import { LarkClient } from '../../core/lark-client';
-import { sendTextLark, sendMediaLark, sendCardLark } from './deliver';
 import { larkLogger } from '../../core/lark-logger';
 import { parseFeishuRouteTarget } from '../../core/targets';
+import { sendCardLark, sendMediaLark, sendTextLark } from './deliver';
 
 const log = larkLogger('outbound/outbound');
 

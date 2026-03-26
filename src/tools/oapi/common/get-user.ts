@@ -11,7 +11,7 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, assertLarkOk, handleInvokeErrorWithAutoAuth, registerTool, StringEnum } from '../helpers';
+import { StringEnum, assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json, registerTool } from '../helpers';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -39,7 +39,7 @@ interface GetUserParams {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerGetUserTool(api: OpenClawPluginApi) {
+export function registerGetUserTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 

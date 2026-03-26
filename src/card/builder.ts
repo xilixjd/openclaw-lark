@@ -488,7 +488,7 @@ function buildCompleteCard(params: {
 
   // Use the answer text (not reasoning) as the feed preview summary.
   // Strip markdown syntax so the preview reads as plain text.
-  const summaryText = text.replace(/[*_`#>\[\]()~]/g, '').trim();
+  const summaryText = text.replace(/[*_`#>[\]()~]/g, '').trim();
   const summary = summaryText ? { content: summaryText.slice(0, 120) } : undefined;
 
   return {

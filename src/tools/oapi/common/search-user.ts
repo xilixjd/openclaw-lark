@@ -10,7 +10,7 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, assertLarkOk, handleInvokeErrorWithAutoAuth , registerTool } from '../helpers';
+import { assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json , registerTool } from '../helpers';
 import type { SearchUserData } from '../sdk-types';
 
 // ---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ interface SearchUserParams {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerSearchUserTool(api: OpenClawPluginApi) {
+export function registerSearchUserTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 

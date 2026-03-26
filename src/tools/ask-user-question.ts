@@ -17,14 +17,14 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { OpenClawPluginApi, ClawdbotConfig } from 'openclaw/plugin-sdk';
+import type { ClawdbotConfig, OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 import { getTicket, withTicket } from '../core/lark-ticket';
 import { larkLogger } from '../core/lark-logger';
 import { createCardEntity, sendCardByCardId, updateCardKitCard } from '../card/cardkit';
-import { checkToolRegistration, formatToolResult, formatToolError } from './helpers';
-import { enqueueFeishuChatTask, buildQueueKey } from '../channel/chat-queue';
+import { buildQueueKey, enqueueFeishuChatTask } from '../channel/chat-queue';
 import { handleFeishuMessage } from '../messaging/inbound/handler';
+import { checkToolRegistration, formatToolError, formatToolResult } from './helpers';
 
 const log = larkLogger('tools/ask-user-question');
 

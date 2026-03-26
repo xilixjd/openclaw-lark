@@ -14,13 +14,13 @@
  */
 
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
-import type { FeishuMessageEvent, MessageContext, MentionInfo } from '../types';
-import { convertMessageContent, type ConvertContext } from '../converters/content-converter';
-import { getUserNameCache } from './user-name-cache';
+import type { FeishuMessageEvent, MentionInfo, MessageContext } from '../types';
+import { type ConvertContext, convertMessageContent } from '../converters/content-converter';
 import { getLarkAccount } from '../../core/accounts';
 import { LarkClient } from '../../core/lark-client';
 import { larkLogger } from '../../core/lark-logger';
-import { fetchCardContent, createFetchSubMessages, createParseResolveNames } from './parse-io';
+import { getUserNameCache } from './user-name-cache';
+import { createFetchSubMessages, createParseResolveNames, fetchCardContent } from './parse-io';
 
 const log = larkLogger('inbound/parse');
 

@@ -26,15 +26,14 @@
 import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
 import type { HistoryEntry } from 'openclaw/plugin-sdk/reply-history';
 import type { MessageContext } from '../types';
-import type { FeishuConfig } from '../../core/types';
-import type { LarkAccount } from '../../core/types';
+import type { FeishuConfig, LarkAccount  } from '../../core/types';
 import { LarkClient } from '../../core/lark-client';
 import {
-  resolveFeishuGroupConfig,
-  resolveFeishuAllowlistMatch,
   isFeishuGroupAllowed,
-  splitLegacyGroupAllowFrom,
+  resolveFeishuAllowlistMatch,
+  resolveFeishuGroupConfig,
   resolveGroupSenderPolicyContext,
+  splitLegacyGroupAllowFrom,
 } from './policy';
 import { mentionedBot } from './mention';
 import { sendPairingReply } from './gate-effects';

@@ -11,19 +11,19 @@
 
 import type { LarkBrand } from './types';
 import {
-  getStoredToken,
-  setStoredToken,
-  removeStoredToken,
-  tokenStatus,
-  maskToken,
   type StoredUAToken,
+  getStoredToken,
+  maskToken,
+  removeStoredToken,
+  setStoredToken,
+  tokenStatus,
 } from './token-store';
 import { resolveOAuthEndpoints } from './device-flow';
 import { larkLogger } from './lark-logger';
 
 const log = larkLogger('core/uat-client');
 import { feishuFetch } from './feishu-fetch';
-import { REFRESH_TOKEN_RETRYABLE, TOKEN_RETRY_CODES, NeedAuthorizationError } from './auth-errors';
+import { NeedAuthorizationError, REFRESH_TOKEN_RETRYABLE, TOKEN_RETRY_CODES } from './auth-errors';
 
 // Re-export for backward compatibility
 export { NeedAuthorizationError };

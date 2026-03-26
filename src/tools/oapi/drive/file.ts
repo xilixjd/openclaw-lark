@@ -17,19 +17,19 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 import {
-  json,
-  createToolContext,
-  assertLarkOk,
-  handleInvokeErrorWithAutoAuth,
-  registerTool,
   StringEnum,
+  assertLarkOk,
+  createToolContext,
+  handleInvokeErrorWithAutoAuth,
+  json,
+  registerTool,
 } from '../helpers';
-import type { DriveFileListData, DriveFileData, DriveTaskData } from '../sdk-types';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import type { DriveFileData, DriveFileListData, DriveTaskData } from '../sdk-types';
 
 // 分片上传配置
 const SMALL_FILE_THRESHOLD = 15 * 1024 * 1024; // 15MB，小于此大小使用一次上传

@@ -8,7 +8,7 @@
  * so that every consuming module can rely on well-typed configuration objects.
  */
 
-import { z, toJSONSchema } from 'zod';
+import { toJSONSchema, z } from 'zod';
 
 export { z };
 
@@ -38,7 +38,7 @@ const AllowFromSchema = z
   .union([z.string(), z.array(z.string())])
   .optional()
   .transform((v) => {
-    if (v === undefined || v === null) return undefined;
+    if (v === undefined || v == null) return undefined;
     return Array.isArray(v) ? v : [v];
   });
 

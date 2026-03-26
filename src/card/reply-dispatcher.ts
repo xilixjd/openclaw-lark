@@ -11,17 +11,16 @@
  * 4. Assembles and returns FeishuReplyDispatcherResult
  */
 
-import { createReplyPrefixContext } from 'openclaw/plugin-sdk/channel-runtime';
+import { createReplyPrefixContext, createTypingCallbacks  } from 'openclaw/plugin-sdk/channel-runtime';
 import { logTypingFailure } from 'openclaw/plugin-sdk/channel-feedback';
 import type { ReplyPayload } from 'openclaw/plugin-sdk';
-import { createTypingCallbacks } from 'openclaw/plugin-sdk/channel-runtime';
 import { createAccountScopedConfig, getLarkAccount } from '../core/accounts';
 import { resolveFooterConfig } from '../core/footer-config';
 import { LarkClient } from '../core/lark-client';
 import { larkLogger } from '../core/lark-logger';
 import { sendMediaLark } from '../messaging/outbound/deliver';
 import { sendMarkdownCardFeishu, sendMessageFeishu } from '../messaging/outbound/send';
-import { addTypingIndicator, removeTypingIndicator, type TypingIndicatorState } from '../messaging/outbound/typing';
+import { type TypingIndicatorState, addTypingIndicator, removeTypingIndicator } from '../messaging/outbound/typing';
 import { isCardTableLimitError } from './card-error';
 import type { CreateFeishuReplyDispatcherParams, FeishuReplyDispatcherResult } from './reply-dispatcher-types';
 import { expandAutoMode, resolveReplyMode, shouldUseCard } from './reply-mode';

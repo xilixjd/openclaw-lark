@@ -13,10 +13,10 @@ import { triggerOnboarding } from '../tools/onboarding-auth';
 import { getTicket } from '../core/lark-ticket';
 import { getLarkAccount } from '../core/accounts';
 import { LarkClient } from '../core/lark-client';
-import { getAppInfo, getAppGrantedScopes } from '../core/app-scope-checker';
+import { getAppGrantedScopes, getAppInfo } from '../core/app-scope-checker';
 import { getStoredToken, tokenStatus } from '../core/token-store';
 import { filterSensitiveScopes } from '../core/tool-scopes';
-import { assertOwnerAccessStrict, OwnerAccessDeniedError } from '../core/owner-policy';
+import { OwnerAccessDeniedError, assertOwnerAccessStrict } from '../core/owner-policy';
 import { openPlatformDomain } from '../core/domains';
 
 import type { FeishuLocale } from './locale';

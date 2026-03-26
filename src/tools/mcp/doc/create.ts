@@ -7,7 +7,7 @@
  */
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
-import { Type, type Static } from '@sinclair/typebox';
+import { type Static, Type } from '@sinclair/typebox';
 import { registerMcpTool } from '../shared';
 
 // Schema 定义

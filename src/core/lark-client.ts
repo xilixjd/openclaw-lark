@@ -17,16 +17,16 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
 
 import type { ClawdbotConfig, PluginRuntime } from 'openclaw/plugin-sdk';
-import type { LarkBrand, LarkAccount, FeishuProbeResult } from './types';
+import type { MessageDedup } from '../messaging/inbound/dedup';
+import { clearUserNameCache } from '../messaging/inbound/user-name-cache-store';
+import type { FeishuProbeResult, LarkAccount, LarkBrand } from './types';
 import { getLarkAccount } from './accounts';
-// NOTE: clearUserNameCache is lazy-imported in clearCache() to break a
-// circular dependency with user-name-cache.ts (which imports LarkClient).
 import { clearChatInfoCache, injectLarkClient } from './chat-info-cache';
-import { getUserAgent } from './version';
 import { larkLogger } from './lark-logger';
+import { getLarkRuntime, setLarkRuntime } from './runtime-store';
+import { getUserAgent } from './version';
 
 const log = larkLogger('core/lark-client');
-import type { MessageDedup } from '../messaging/inbound/dedup';
 
 // ---------------------------------------------------------------------------
 // 注入 User-Agent 到所有飞书 SDK 请求
@@ -132,22 +132,14 @@ export class LarkClient {
 
   // ---- Plugin runtime (singleton) ------------------------------------------
 
-  private static _runtime: PluginRuntime | null = null;
-
   /** Persist the runtime instance for later retrieval (activate 阶段调用一次). */
   static setRuntime(runtime: PluginRuntime): void {
-    LarkClient._runtime = runtime;
+    setLarkRuntime(runtime);
   }
 
   /** Retrieve the stored runtime instance. Throws if not yet initialised. */
   static get runtime(): PluginRuntime {
-    if (!LarkClient._runtime) {
-      throw new Error(
-        'Feishu plugin runtime has not been initialised. ' +
-          'Ensure LarkClient.setRuntime() is called during plugin activation.',
-      );
-    }
-    return LarkClient._runtime;
+    return getLarkRuntime();
   }
 
   // ---- Global config (singleton) -------------------------------------------
@@ -238,7 +230,6 @@ export class LarkClient {
    * Without — dispose every cached instance and clear the cache.
    */
   static async clearCache(accountId?: string): Promise<void> {
-    const {clearUserNameCache} = await import('../messaging/inbound/user-name-cache');
     if (accountId !== undefined) {
       cache.get(accountId)?.dispose();
       clearUserNameCache(accountId);
@@ -401,7 +392,7 @@ export class LarkClient {
 
   /** Whether a WebSocket client is currently active. */
   get wsConnected(): boolean {
-    return this._wsClient !== null;
+    return this._wsClient != null;
   }
 
   /** Disconnect WebSocket but keep instance in cache. */

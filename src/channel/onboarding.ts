@@ -20,11 +20,11 @@ import type { FeishuConfig } from '../core/types';
 import { getLarkCredentials } from '../core/accounts';
 import { probeFeishu } from './probe';
 import {
-  setFeishuDmPolicy,
-  setFeishuAllowFrom,
-  setFeishuGroupPolicy,
-  setFeishuGroupAllowFrom,
   parseAllowFromInput,
+  setFeishuAllowFrom,
+  setFeishuDmPolicy,
+  setFeishuGroupAllowFrom,
+  setFeishuGroupPolicy,
 } from './onboarding-config';
 import { migrateLegacyGroupAllowFrom } from './onboarding-migrate';
 

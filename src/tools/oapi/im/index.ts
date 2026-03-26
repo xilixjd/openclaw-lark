@@ -12,7 +12,7 @@ import { registerFeishuImUserMessageTool } from './message';
 import { registerFeishuImUserFetchResourceTool } from './resource';
 import { registerMessageReadTools } from './message-read';
 
-export function registerFeishuImTools(api: OpenClawPluginApi) {
+export function registerFeishuImTools(api: OpenClawPluginApi): void {
   const registered: string[] = [];
   if (registerFeishuImUserMessageTool(api)) registered.push('feishu_im_user_message');
   if (registerFeishuImUserFetchResourceTool(api)) registered.push('feishu_im_user_fetch_resource');

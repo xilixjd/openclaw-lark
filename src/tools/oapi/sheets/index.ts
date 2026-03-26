@@ -14,7 +14,7 @@ import { registerFeishuSheetTool } from './sheet';
 /**
  * 注册 Sheets 工具
  */
-export function registerFeishuSheetsTools(api: OpenClawPluginApi) {
+export function registerFeishuSheetsTools(api: OpenClawPluginApi): void {
   if (!api.config) {
     api.logger.debug?.('feishu_sheets: No config available, skipping');
     return;

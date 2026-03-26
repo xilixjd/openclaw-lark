@@ -14,40 +14,38 @@
  * - dispatch-commands.ts — system command & permission notification
  */
 
-import type { RuntimeEnv } from 'openclaw/plugin-sdk';
+import type { ClawdbotConfig, RuntimeEnv  } from 'openclaw/plugin-sdk';
 import type { HistoryEntry } from 'openclaw/plugin-sdk/reply-history';
 import { clearHistoryEntriesIfEnabled } from 'openclaw/plugin-sdk/reply-history';
 import type { MessageContext } from '../types';
-import type { LarkAccount } from '../../core/types';
-import type { FeishuGroupConfig } from '../../core/types';
-import type { PermissionError } from './permission';
+import type { FeishuGroupConfig, LarkAccount  } from '../../core/types';
 import { larkLogger } from '../../core/lark-logger';
 import { ticketElapsed } from '../../core/lark-ticket';
 import { createFeishuReplyDispatcher } from '../../card/reply-dispatcher';
-import { mentionedBot } from './mention';
 import {
   buildQueueKey,
-  threadScopedKey,
   registerActiveDispatcher,
+  threadScopedKey,
   unregisterActiveDispatcher,
 } from '../../channel/chat-queue';
 import { isLikelyAbortText } from '../../channel/abort-detect';
-import { type DispatchContext, buildDispatchContext, resolveThreadSessionKey } from './dispatch-context';
 import { isThreadCapableGroup } from '../../core/chat-info-cache';
-import {
-  buildMessageBody,
-  buildBodyForAgent,
-  buildInboundPayload,
-  buildEnvelopeWithHistory,
-} from './dispatch-builders';
-import { dispatchPermissionNotification, dispatchSystemCommand } from './dispatch-commands';
 import { encodeFeishuRouteTarget } from '../../core/targets';
-import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
-import { LarkClient } from '../../core/lark-client';
+import type { LarkClient } from '../../core/lark-client';
 import { runFeishuDoctorI18n } from '../../commands/doctor';
 import { runFeishuAuthI18n } from '../../commands/auth';
-import { runFeishuStartI18n, getFeishuHelpI18n } from '../../commands/index';
-import { sendCardFeishu, buildI18nMarkdownCard, sendMessageFeishu } from '../outbound/send';
+import { getFeishuHelpI18n, runFeishuStartI18n } from '../../commands/index';
+import { buildI18nMarkdownCard, sendCardFeishu, sendMessageFeishu } from '../outbound/send';
+import { dispatchPermissionNotification, dispatchSystemCommand } from './dispatch-commands';
+import {
+  buildBodyForAgent,
+  buildEnvelopeWithHistory,
+  buildInboundPayload,
+  buildMessageBody,
+} from './dispatch-builders';
+import { type DispatchContext, buildDispatchContext, resolveThreadSessionKey } from './dispatch-context';
+import type { PermissionError } from './permission';
+import { mentionedBot } from './mention';
 
 const log = larkLogger('inbound/dispatch');
 

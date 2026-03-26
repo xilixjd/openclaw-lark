@@ -15,7 +15,7 @@ import { registerFeishuWikiSpaceNodeTool } from './space-node';
 /**
  * 注册所有 Wiki 工具
  */
-export function registerFeishuWikiTools(api: OpenClawPluginApi) {
+export function registerFeishuWikiTools(api: OpenClawPluginApi): void {
   if (!api.config) {
     api.logger.debug?.('feishu_wiki: No config available, skipping');
     return;

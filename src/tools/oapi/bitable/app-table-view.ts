@@ -16,7 +16,7 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 
-import { json, createToolContext, assertLarkOk, handleInvokeErrorWithAutoAuth , registerTool } from '../helpers';
+import { assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json , registerTool } from '../helpers';
 import type { PaginatedData } from '../sdk-types';
 
 // ---------------------------------------------------------------------------
@@ -106,7 +106,7 @@ type FeishuBitableAppTableViewParams =
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuBitableAppTableViewTool(api: OpenClawPluginApi) {
+export function registerFeishuBitableAppTableViewTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
 
   const cfg = api.config;

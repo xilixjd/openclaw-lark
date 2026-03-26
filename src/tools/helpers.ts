@@ -7,14 +7,14 @@
  * 提供所有工具通用的模式，减少重复代码。
  */
 
-import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
-import type { ClawdbotConfig } from 'openclaw/plugin-sdk';
+import type { ClawdbotConfig, OpenClawPluginApi  } from 'openclaw/plugin-sdk';
 import type { Client as LarkSdkClient } from '@larksuiteoapi/node-sdk';
 import { getEnabledLarkAccounts, getLarkAccount } from '../core/accounts';
 import { LarkClient, getResolvedConfig } from '../core/lark-client';
 import type { LarkAccount } from '../core/types';
 import { getTicket } from '../core/lark-ticket';
-import { ToolClient, createToolClient } from '../core/tool-client';
+import type { ToolClient} from '../core/tool-client';
+import { createToolClient } from '../core/tool-client';
 import { shouldRegisterTool } from '../core/tools-config';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +35,16 @@ export interface ToolResult {
 export type ClientGetter = () => LarkSdkClient;
 
 /**
+ * 工具日志记录器接口
+ */
+export interface ToolLogger {
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+  error: (msg: string) => void;
+  debug: (msg: string) => void;
+}
+
+/**
  * 工具上下文对象，包含所有常用的辅助工具
  */
 export interface ToolContext {
@@ -43,7 +53,7 @@ export interface ToolContext {
   /** 获取当前请求对应的 {@link ToolClient} 实例 */
   toolClient: () => ToolClient;
   /** 工具日志记录器 */
-  log: ReturnType<typeof createToolLogger>;
+  log: ToolLogger;
 }
 
 // ---------------------------------------------------------------------------
@@ -378,7 +388,7 @@ export function formatToolError(error: unknown, context?: Record<string, unknown
  * }
  * ```
  */
-export function createToolLogger(api: OpenClawPluginApi, toolName: string) {
+export function createToolLogger(api: OpenClawPluginApi, toolName: string): ToolLogger {
   const prefix = `${toolName}:`;
 
   return {
@@ -432,7 +442,7 @@ export function validateRequiredParams(
 ): { error: string; missing: string[] } | null {
   const missing = requiredFields.filter((field) => {
     const value = params[field];
-    return value === undefined || value === null || value === '';
+    return value === undefined || value == null || value === '';
   });
 
   if (missing.length > 0) {

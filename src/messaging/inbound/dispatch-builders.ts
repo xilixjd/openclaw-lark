@@ -12,10 +12,10 @@
 import type { HistoryEntry } from 'openclaw/plugin-sdk/reply-history';
 import { buildPendingHistoryContextFromMap } from 'openclaw/plugin-sdk/reply-history';
 import type { MessageContext } from '../types';
-import type { DispatchContext } from './dispatch-context';
-import { LarkClient } from '../../core/lark-client';
-import { nonBotMentions } from './mention';
+import type { LarkClient } from '../../core/lark-client';
 import { threadScopedKey } from '../../channel/chat-queue';
+import type { DispatchContext } from './dispatch-context';
+import { nonBotMentions } from './mention';
 
 // ---------------------------------------------------------------------------
 // Mention annotation

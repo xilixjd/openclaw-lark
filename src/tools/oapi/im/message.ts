@@ -18,12 +18,12 @@ import { Type } from '@sinclair/typebox';
 import { createAccountScopedConfig } from '../../../core/accounts';
 import { LarkClient } from '../../../core/lark-client';
 import {
-  json,
-  createToolContext,
-  assertLarkOk,
-  handleInvokeErrorWithAutoAuth,
-  registerTool,
   StringEnum,
+  assertLarkOk,
+  createToolContext,
+  handleInvokeErrorWithAutoAuth,
+  json,
+  registerTool,
 } from '../helpers';
 
 interface FeishuPostContentBlock {

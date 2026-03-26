@@ -14,8 +14,8 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, assertLarkOk, handleInvokeErrorWithAutoAuth , registerTool } from '../helpers';
-import type { CalendarListData, CalendarGetData, CalendarPrimaryData } from '../sdk-types';
+import { assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json , registerTool } from '../helpers';
+import type { CalendarGetData, CalendarListData, CalendarPrimaryData } from '../sdk-types';
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -64,7 +64,7 @@ type FeishuCalendarCalendarParams =
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuCalendarCalendarTool(api: OpenClawPluginApi) {
+export function registerFeishuCalendarCalendarTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 

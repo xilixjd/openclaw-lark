@@ -118,11 +118,15 @@ export async function batchResolveUserNamesAsUser(params: {
     const chunk = uniqueMissing.slice(i, i + BATCH_SIZE);
     const batchIndex = Math.floor(i / BATCH_SIZE) + 1;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const res: any = await client.invoke(
+      interface BatchUserRes {
+        data?: { users?: Array<{ user_id?: string; name?: string | { value?: string } }> };
+      }
+      const res = await client.invoke<BatchUserRes>(
         'feishu_get_user.basic_batch',
         (sdk, opts) =>
-          (sdk as any).request(
+          (
+            sdk as unknown as { request: (config: Record<string, unknown>, opts?: unknown) => Promise<BatchUserRes> }
+          ).request(
             {
               method: 'POST',
               url: '/open-apis/contact/v3/users/basic_batch',
@@ -136,8 +140,7 @@ export async function batchResolveUserNamesAsUser(params: {
         },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const users: any[] = res?.data?.users ?? [];
+      const users = res?.data?.users ?? [];
       let resolved = 0;
       for (const user of users) {
         const openId: string | undefined = user.user_id;

@@ -17,15 +17,15 @@
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
 import {
-  json,
-  createToolContext,
-  parseTimeToTimestamp,
-  assertLarkOk,
-  handleInvokeErrorWithAutoAuth,
-  formatLarkError,
-  unixTimestampToISO8601,
-  registerTool,
   StringEnum,
+  assertLarkOk,
+  createToolContext,
+  formatLarkError,
+  handleInvokeErrorWithAutoAuth,
+  json,
+  parseTimeToTimestamp,
+  registerTool,
+  unixTimestampToISO8601,
 } from '../helpers';
 import type { CalendarPrimaryData, PaginatedData } from '../sdk-types';
 
@@ -447,7 +447,7 @@ type FeishuCalendarEventParams =
     };
 
 function normalizeCalendarTimeValue(value: unknown): string | undefined {
-  if (value === null || value === undefined) return undefined;
+  if (value == null || value === undefined) return undefined;
 
   if (typeof value === 'string') {
     const iso = unixTimestampToISO8601(value);
@@ -499,7 +499,7 @@ function normalizeEventListTimeFields(
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuCalendarEventTool(api: OpenClawPluginApi) {
+export function registerFeishuCalendarEventTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 
@@ -657,7 +657,7 @@ export function registerFeishuCalendarEventTool(api: OpenClawPluginApi) {
                         {
                           path: {
                             calendar_id: calendarId,
-                            event_id: res.data?.event?.event_id!,
+                            event_id: res.data?.event?.event_id ?? '',
                           },
                           params: { user_id_type: 'open_id' as any },
                           data: {

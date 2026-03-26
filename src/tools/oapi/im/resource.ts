@@ -10,12 +10,12 @@
  * 全部以用户身份（user_access_token）调用，scope 来自 real-scope.json。
  */
 
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { buildRandomTempFilePath } from 'openclaw/plugin-sdk/temp-path';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, handleInvokeErrorWithAutoAuth, registerTool, StringEnum } from '../helpers';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
+import { StringEnum, createToolContext, handleInvokeErrorWithAutoAuth, json, registerTool } from '../helpers';
 
 // ---------------------------------------------------------------------------
 // Helper: MIME type to extension mapping

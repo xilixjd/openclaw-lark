@@ -16,9 +16,9 @@ import { getLarkAccount } from '../core/accounts';
 import { LarkClient } from '../core/lark-client';
 import { getAppGrantedScopes } from '../core/app-scope-checker';
 import { getAppOwnerFallback } from '../core/app-owner-fallback';
-import { executeAuthorize } from './oauth';
 import { larkLogger } from '../core/lark-logger';
 import { filterSensitiveScopes } from '../core/tool-scopes';
+import { executeAuthorize } from './oauth';
 
 const log = larkLogger('tools/onboarding-auth');
 

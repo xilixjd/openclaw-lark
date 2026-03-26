@@ -12,12 +12,12 @@
  * 凭证: tenant_access_token
  */
 
+import * as fsPromises from 'node:fs/promises';
+import * as path from 'node:path';
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { buildRandomTempFilePath } from 'openclaw/plugin-sdk/temp-path';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, formatLarkError, registerTool, StringEnum } from '../../oapi/helpers';
-import * as fsPromises from 'node:fs/promises';
-import * as path from 'node:path';
+import { StringEnum, createToolContext, formatLarkError, json, registerTool } from '../../oapi/helpers';
 
 // ===========================================================================
 // Shared constants

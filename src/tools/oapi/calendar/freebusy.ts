@@ -12,7 +12,7 @@
 
 import type { OpenClawPluginApi } from 'openclaw/plugin-sdk';
 import { Type } from '@sinclair/typebox';
-import { json, createToolContext, parseTimeToRFC3339, assertLarkOk, handleInvokeErrorWithAutoAuth , registerTool } from '../helpers';
+import { assertLarkOk, createToolContext, handleInvokeErrorWithAutoAuth, json, parseTimeToRFC3339 , registerTool } from '../helpers';
 import type { FreebusyData } from '../sdk-types';
 
 // ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ interface FeishuCalendarFreebusyParams {
 // Registration
 // ---------------------------------------------------------------------------
 
-export function registerFeishuCalendarFreebusyTool(api: OpenClawPluginApi) {
+export function registerFeishuCalendarFreebusyTool(api: OpenClawPluginApi): void {
   if (!api.config) return;
   const cfg = api.config;
 
