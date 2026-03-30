@@ -1,6 +1,6 @@
 {
   "name": "@larksuite/openclaw-lark",
-  "version": "2026.3.28",
+  "version": "2026.3.30",
   "description": "OpenClaw Lark/Feishu channel plugin",
   "type": "module",
   "exports": {
@@ -47,6 +47,11 @@
   },
   "peerDependencies": {
     "openclaw": ">=2026.3.22"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

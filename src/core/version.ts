@@ -39,15 +39,31 @@ export function getPluginVersion(): string {
 }
 
 /**
+ * 获取当前运行平台名称
+ *
+ * @returns `mac` | `linux` | `windows`
+ */
+export function getPlatform(): string {
+  switch (process.platform) {
+    case 'darwin':
+      return 'mac';
+    case 'win32':
+      return 'windows';
+    default:
+      return 'linux';
+  }
+}
+
+/**
  * 生成 User-Agent 字符串
  *
- * @returns User-Agent 字符串，格式：`openclaw-lark/{version}`
+ * @returns User-Agent 字符串，格式：`openclaw-lark/{version}/{platform}`
  *
  * @example
  * ```typescript
- * getUserAgent() // => "openclaw-lark/2026.2.28.5"
+ * getUserAgent() // => "openclaw-lark/2026.2.28.5/mac"
  * ```
  */
 export function getUserAgent(): string {
-  return `openclaw-lark/${getPluginVersion()}`;
+  return `openclaw-lark/${getPluginVersion()}/${getPlatform()}`;
 }
