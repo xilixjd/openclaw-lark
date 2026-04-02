@@ -14,7 +14,10 @@
  * - dispatch-commands.ts — system command & permission notification
  */
 
+import fs from 'node:fs/promises';
+import path from 'node:path';
 import type { ClawdbotConfig, RuntimeEnv  } from 'openclaw/plugin-sdk';
+import { resolveAgentWorkspaceDir } from 'openclaw/plugin-sdk/agent-runtime';
 import type { HistoryEntry } from 'openclaw/plugin-sdk/reply-history';
 import { clearHistoryEntriesIfEnabled } from 'openclaw/plugin-sdk/reply-history';
 import type { MessageContext } from '../types';
@@ -50,6 +53,137 @@ import { resolveRespondToMentionAll } from './gate';
 import { consumeDynamicSkillsDeltaNote } from './dynamic-agent';
 
 const log = larkLogger('inbound/dispatch');
+
+// ---------------------------------------------------------------------------
+// Internal: media workspace mirror (non-core workaround for >5MB sandbox staging)
+// ---------------------------------------------------------------------------
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => (typeof item === 'string' ? item.trim() : '')).filter(Boolean);
+}
+
+function extractMediaPaths(mediaPayload: Record<string, unknown>): string[] {
+  const fromArray = toStringArray(mediaPayload.MediaPaths);
+  if (fromArray.length > 0) return fromArray;
+  const single = typeof mediaPayload.MediaPath === 'string' ? mediaPayload.MediaPath.trim() : '';
+  return single ? [single] : [];
+}
+
+function sanitizeWorkspaceFileName(input: string): string {
+  const blocked = '<>:"/\\|?*';
+  let out = '';
+  for (const ch of path.basename(input || '')) {
+    const code = ch.charCodeAt(0);
+    out += code < 32 || blocked.includes(ch) ? '_' : ch;
+  }
+  const base = out.trim();
+  return base || 'attachment.bin';
+}
+
+async function resolveUniquePath(dir: string, fileName: string): Promise<string> {
+  const parsed = path.parse(fileName);
+  let candidate = path.join(dir, fileName);
+  let index = 1;
+  while (true) {
+    try {
+      await fs.access(candidate);
+      candidate = path.join(dir, `${parsed.name}-${index}${parsed.ext}`);
+      index += 1;
+    } catch {
+      return candidate;
+    }
+  }
+}
+
+async function mirrorInboundMediaToAgentWorkspace(params: {
+  ctx: MessageContext;
+  mediaPayload: Record<string, unknown>;
+  accountScopedCfg: ClawdbotConfig;
+  agentId: string;
+  accountId: string;
+  log: (...args: unknown[]) => void;
+}): Promise<{ ctx: MessageContext; mediaPayload: Record<string, unknown> }> {
+  const srcPaths = extractMediaPaths(params.mediaPayload);
+  if (srcPaths.length === 0) {
+    return { ctx: params.ctx, mediaPayload: params.mediaPayload };
+  }
+
+  const workspaceDir = resolveAgentWorkspaceDir(params.accountScopedCfg, params.agentId);
+  if (!workspaceDir || !workspaceDir.trim()) {
+    return { ctx: params.ctx, mediaPayload: params.mediaPayload };
+  }
+
+  const inboundDir = path.join(workspaceDir, 'media', 'inbound');
+  await fs.mkdir(inboundDir, { recursive: true });
+
+  const rewriteMap = new Map<string, string>();
+  for (const src of srcPaths) {
+    const absSrc = path.resolve(src);
+    if (rewriteMap.has(src) || rewriteMap.has(absSrc)) continue;
+
+    let stat;
+    try {
+      stat = await fs.stat(absSrc);
+    } catch {
+      continue;
+    }
+    if (!stat.isFile()) continue;
+
+    const targetName = sanitizeWorkspaceFileName(path.basename(absSrc));
+    const dest = await resolveUniquePath(inboundDir, targetName);
+    try {
+      await fs.copyFile(absSrc, dest);
+      rewriteMap.set(src, dest);
+      rewriteMap.set(absSrc, dest);
+    } catch (err) {
+      params.log(
+        `feishu[${params.accountId}]: failed to mirror media to workspace: ${absSrc} -> ${dest}, error=${String(err)}`,
+      );
+    }
+  }
+
+  if (rewriteMap.size === 0) {
+    return { ctx: params.ctx, mediaPayload: params.mediaPayload };
+  }
+
+  const rewritePath = (raw: unknown): string | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const trimmed = raw.trim();
+    if (!trimmed) return undefined;
+    return rewriteMap.get(trimmed) ?? rewriteMap.get(path.resolve(trimmed)) ?? trimmed;
+  };
+
+  const nextPaths = srcPaths.map((raw) => rewritePath(raw) ?? raw);
+  const nextFirstPath = nextPaths[0];
+
+  let nextContent = params.ctx.content;
+  for (const [from, to] of rewriteMap.entries()) {
+    if (from !== to) {
+      nextContent = nextContent.split(from).join(to);
+    }
+  }
+
+  const nextMediaPayload: Record<string, unknown> = { ...params.mediaPayload };
+  if (nextPaths.length > 0) {
+    nextMediaPayload.MediaPaths = nextPaths;
+    nextMediaPayload.MediaUrls = nextPaths;
+    nextMediaPayload.MediaPath = nextFirstPath;
+    nextMediaPayload.MediaUrl = nextFirstPath;
+  }
+
+  params.log(
+    `feishu[${params.accountId}]: mirrored ${nextPaths.length} media file(s) into agent workspace: ${inboundDir}`,
+  );
+
+  return {
+    ctx: {
+      ...params.ctx,
+      content: nextContent,
+    },
+    mediaPayload: nextMediaPayload,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Internal: normal message dispatch
@@ -180,6 +314,17 @@ export async function dispatchToAgent(params: {
   // 1. Derive shared context (including route resolution + system event)
   const dc = buildDispatchContext(params);
 
+  const mirrored = await mirrorInboundMediaToAgentWorkspace({
+    ctx: params.ctx,
+    mediaPayload: params.mediaPayload,
+    accountScopedCfg: params.accountScopedCfg,
+    agentId: dc.route.agentId,
+    accountId: dc.account.accountId,
+    log: dc.log,
+  });
+  const inboundCtx = mirrored.ctx;
+  const mediaPayload = mirrored.mediaPayload;
+
   // 1a. Thread detection fallback for topic groups.
   //     In topic groups (chat_mode=topic), reply events may carry root_id
   //     without thread_id.  When threadSession is enabled, use root_id as
@@ -210,7 +355,7 @@ export async function dispatchToAgent(params: {
   }
 
   // 2. Build annotated message body
-  const messageBody = buildMessageBody(params.ctx, params.quotedContent);
+  const messageBody = buildMessageBody(inboundCtx, params.quotedContent);
 
   // 3. Permission-error notification (optional side-effect).
   //    Isolated so a failure here does not block the main message dispatch.
@@ -233,7 +378,7 @@ export async function dispatchToAgent(params: {
   // 5. Build BodyForAgent with mention annotation (if any).
   //    SDK >= 2026.2.10 no longer falls back to Body for BodyForAgent,
   //    so we must set it explicitly to preserve the annotation.
-  const bodyForAgent = buildBodyForAgent(params.ctx);
+  const bodyForAgent = buildBodyForAgent(inboundCtx);
 
   // 6. Build InboundHistory for SDK metadata injection (>= 2026.2.10).
   //    The SDK's buildInboundUserContextPrefix renders these as structured
@@ -249,8 +394,8 @@ export async function dispatchToAgent(params: {
       : undefined;
 
   // 7. Precompute command text and command routing mode
-  const contentTrimmed = (params.ctx.content ?? '').trim();
-  const isCommand = dc.core.channel.commands.isControlCommandMessage(params.ctx.content, params.accountScopedCfg);
+  const contentTrimmed = (inboundCtx.content ?? '').trim();
+  const isCommand = dc.core.channel.commands.isControlCommandMessage(inboundCtx.content, params.accountScopedCfg);
 
   // 8a. Intercept /feishu commands for i18n multi-locale card dispatch
   //     Must run BEFORE the SDK command check — the SDK does not recognise
@@ -310,7 +455,7 @@ export async function dispatchToAgent(params: {
   }
 
   // 9. Build inbound context payload
-  const isBareNewOrReset = /^\/(?:new|reset)\s*$/i.test((params.ctx.content ?? '').trim());
+  const isBareNewOrReset = /^\/(?:new|reset)\s*$/i.test((inboundCtx.content ?? '').trim());
   const groupSystemPrompt = dc.isGroup
     ? params.groupConfig?.systemPrompt?.trim() || params.defaultGroupConfig?.systemPrompt?.trim() || undefined
     : undefined;
@@ -333,15 +478,15 @@ export async function dispatchToAgent(params: {
   const ctxPayload = buildInboundPayload(dc, {
     body: combinedBody,
     bodyForAgent: finalBodyForAgent,
-    rawBody: params.ctx.content,
-    commandBody: params.ctx.content,
+    rawBody: inboundCtx.content,
+    commandBody: inboundCtx.content,
     originatingTo,
-    senderName: params.ctx.senderName ?? params.ctx.senderId,
-    senderId: params.ctx.senderId,
-    messageSid: params.ctx.messageId,
+    senderName: inboundCtx.senderName ?? inboundCtx.senderId,
+    senderId: inboundCtx.senderId,
+    messageSid: inboundCtx.messageId,
     wasMentioned:
-      mentionedBot(params.ctx) ||
-      (params.ctx.mentionAll &&
+      mentionedBot(inboundCtx) ||
+      (inboundCtx.mentionAll &&
         resolveRespondToMentionAll({
           groupConfig: params.groupConfig,
           defaultConfig: params.defaultGroupConfig,
@@ -350,7 +495,7 @@ export async function dispatchToAgent(params: {
     replyToBody: params.quotedContent,
     inboundHistory,
     extraFields: {
-      ...params.mediaPayload,
+      ...mediaPayload,
       ...(groupSystemPrompt ? { GroupSystemPrompt: groupSystemPrompt } : {}),
       ...(dc.ctx.threadId ? { MessageThreadId: dc.ctx.threadId } : {}),
     },
