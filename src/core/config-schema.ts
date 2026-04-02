@@ -132,6 +132,16 @@ const DmConfigSchema = z
   })
   .optional();
 
+const DynamicAgentsSchema = z
+  .object({
+    enabled: z.boolean().optional(),
+    dmCreateAgent: z.boolean().optional(),
+    groupEnabled: z.boolean().optional(),
+    adminUsers: z.array(z.string()).optional(),
+    workspaceSeed: z.boolean().optional(),
+  })
+  .optional();
+
 // ---------------------------------------------------------------------------
 // Group schema
 // ---------------------------------------------------------------------------
@@ -184,6 +194,7 @@ export const FeishuAccountConfigSchema = z.object({
   footer: FeishuFooterSchema,
   markdown: MarkdownConfigSchema,
   configWrites: z.boolean().optional(),
+  dynamicAgents: DynamicAgentsSchema,
   capabilities: CapabilitiesSchema,
   dedup: DedupSchema,
   reactionNotifications: ReactionNotificationModeSchema,

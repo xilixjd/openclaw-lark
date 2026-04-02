@@ -16,8 +16,13 @@ import type { LarkAccount } from '../../core/types';
 import { LarkClient } from '../../core/lark-client';
 import { larkLogger } from '../../core/lark-logger';
 import { isThreadCapableGroup } from '../../core/chat-info-cache';
+import {
+  bootstrapDynamicAgent,
+  ensureDynamicAgentListedForRuntime,
+  resolveDynamicAgentRouteOverride,
+} from './dynamic-agent';
 
-const log = larkLogger('inbound/dispatch-context');
+const moduleLog = larkLogger('inbound/dispatch-context');
 
 // ---------------------------------------------------------------------------
 // DispatchContext type
@@ -54,8 +59,8 @@ export interface DispatchContext {
 export function ensureRuntime(runtime: RuntimeEnv | undefined): RuntimeEnv {
   if (runtime) return runtime;
   return {
-    log: (...args: unknown[]) => log.info(args.map(String).join(' ')),
-    error: (...args: unknown[]) => log.error(args.map(String).join(' ')),
+    log: (...args: unknown[]) => moduleLog.info(args.map(String).join(' ')),
+    error: (...args: unknown[]) => moduleLog.error(args.map(String).join(' ')),
     exit: (code: number) => process.exit(code) as never,
   };
 }
@@ -101,6 +106,40 @@ export function buildDispatchContext(params: {
       id: isGroup ? ctx.chatId : ctx.senderId,
     },
   });
+
+  // ---- Dynamic agent route override (optional) ----
+  const dynamicOverride = resolveDynamicAgentRouteOverride({
+    cfg: accountScopedCfg,
+    route,
+    accountId: account.accountId,
+    senderId: ctx.senderId,
+    chatType: isGroup ? 'group' : 'dm',
+    peerId: isGroup ? ctx.chatId : ctx.senderId,
+  });
+  if (dynamicOverride) {
+    bootstrapDynamicAgent({
+      cfg: accountScopedCfg,
+      dynamicAgentId: dynamicOverride.agentId,
+      sourceAgentId: dynamicOverride.sourceAgentId,
+    });
+
+    route.agentId = dynamicOverride.agentId;
+    route.sessionKey = dynamicOverride.sessionKey;
+    route.mainSessionKey = dynamicOverride.mainSessionKey;
+    route.lastRoutePolicy = dynamicOverride.lastRoutePolicy;
+
+    void ensureDynamicAgentListedForRuntime({
+      agentId: dynamicOverride.agentId,
+      runtime: core,
+      accountId: account.accountId,
+    }).catch((err) => {
+      moduleLog.warn(`dynamic agent list write failed: agent=${dynamicOverride.agentId} error=${String(err)}`);
+    });
+
+    moduleLog.info(
+      `dynamic route applied: source=${dynamicOverride.sourceAgentId} target=${dynamicOverride.agentId} session=${dynamicOverride.sessionKey} account=${account.accountId} chatType=${isGroup ? 'group' : 'dm'} peer=${isGroup ? ctx.chatId : ctx.senderId}`,
+    );
+  }
 
   // ---- System event ----
   const sender = ctx.senderName ? `${ctx.senderName} (${ctx.senderId})` : ctx.senderId;
@@ -174,7 +213,7 @@ export async function resolveThreadSessionKey(params: {
     accountId: account.accountId,
   });
   if (!threadCapable) {
-    log.info(`thread session skipped: group ${chatId} is not topic/thread mode`);
+    moduleLog.info(`thread session skipped: group ${chatId} is not topic/thread mode`);
     return undefined;
   }
 

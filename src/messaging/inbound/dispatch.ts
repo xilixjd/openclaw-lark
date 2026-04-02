@@ -47,6 +47,7 @@ import { type DispatchContext, buildDispatchContext, resolveThreadSessionKey } f
 import type { PermissionError } from './permission';
 import { mentionedBot } from './mention';
 import { resolveRespondToMentionAll } from './gate';
+import { consumeDynamicSkillsDeltaNote } from './dynamic-agent';
 
 const log = larkLogger('inbound/dispatch');
 
@@ -247,50 +248,14 @@ export async function dispatchToAgent(params: {
         }))
       : undefined;
 
-  // 7. Build inbound context payload
-  const isBareNewOrReset = /^\/(?:new|reset)\s*$/i.test((params.ctx.content ?? '').trim());
-  const groupSystemPrompt = dc.isGroup
-    ? params.groupConfig?.systemPrompt?.trim() || params.defaultGroupConfig?.systemPrompt?.trim() || undefined
-    : undefined;
-  const originatingTo =
-    isBareNewOrReset && dc.isThread
-      ? encodeFeishuRouteTarget({
-          target: dc.feishuTo,
-          replyToMessageId: params.replyToMessageId ?? params.ctx.messageId,
-          threadId: dc.ctx.threadId,
-        })
-      : undefined;
-  const ctxPayload = buildInboundPayload(dc, {
-    body: combinedBody,
-    bodyForAgent,
-    rawBody: params.ctx.content,
-    commandBody: params.ctx.content,
-    originatingTo,
-    senderName: params.ctx.senderName ?? params.ctx.senderId,
-    senderId: params.ctx.senderId,
-    messageSid: params.ctx.messageId,
-    wasMentioned:
-      mentionedBot(params.ctx) ||
-      (params.ctx.mentionAll &&
-        resolveRespondToMentionAll({
-          groupConfig: params.groupConfig,
-          defaultConfig: params.defaultGroupConfig,
-          accountFeishuCfg: params.account.config,
-        })),
-    replyToBody: params.quotedContent,
-    inboundHistory,
-    extraFields: {
-      ...params.mediaPayload,
-      ...(groupSystemPrompt ? { GroupSystemPrompt: groupSystemPrompt } : {}),
-      ...(dc.ctx.threadId ? { MessageThreadId: dc.ctx.threadId } : {}),
-    },
-  });
+  // 7. Precompute command text and command routing mode
+  const contentTrimmed = (params.ctx.content ?? '').trim();
+  const isCommand = dc.core.channel.commands.isControlCommandMessage(params.ctx.content, params.accountScopedCfg);
 
   // 8a. Intercept /feishu commands for i18n multi-locale card dispatch
   //     Must run BEFORE the SDK command check — the SDK does not recognise
   //     plugin-registered commands via isControlCommandMessage, so
   //     /feishu_* falls through to the AI agent otherwise.
-  const contentTrimmed = (params.ctx.content ?? '').trim();
   const isDoctorCommand = /^\/feishu[_ ]doctor\s*$/i.test(contentTrimmed);
   const isAuthCommand = /^\/feishu[_ ](?:auth|onboarding)\s*$/i.test(contentTrimmed);
   const isStartCommand = /^\/feishu[_ ]start\s*$/i.test(contentTrimmed);
@@ -344,8 +309,54 @@ export async function dispatchToAgent(params: {
     return;
   }
 
-  // 8. Dispatch: system command vs. normal message
-  const isCommand = dc.core.channel.commands.isControlCommandMessage(params.ctx.content, params.accountScopedCfg);
+  // 9. Build inbound context payload
+  const isBareNewOrReset = /^\/(?:new|reset)\s*$/i.test((params.ctx.content ?? '').trim());
+  const groupSystemPrompt = dc.isGroup
+    ? params.groupConfig?.systemPrompt?.trim() || params.defaultGroupConfig?.systemPrompt?.trim() || undefined
+    : undefined;
+  const originatingTo =
+    isBareNewOrReset && dc.isThread
+      ? encodeFeishuRouteTarget({
+          target: dc.feishuTo,
+          replyToMessageId: params.replyToMessageId ?? params.ctx.messageId,
+          threadId: dc.ctx.threadId,
+        })
+      : undefined;
+  let finalBodyForAgent = bodyForAgent;
+  if (!isCommand) {
+    const skillsNote = consumeDynamicSkillsDeltaNote(dc.route.agentId);
+    if (skillsNote) {
+      finalBodyForAgent = `${skillsNote}\n\n${bodyForAgent}`;
+      dc.log(`feishu[${dc.account.accountId}]: dynamic skills runtime note injected (agent=${dc.route.agentId})`);
+    }
+  }
+  const ctxPayload = buildInboundPayload(dc, {
+    body: combinedBody,
+    bodyForAgent: finalBodyForAgent,
+    rawBody: params.ctx.content,
+    commandBody: params.ctx.content,
+    originatingTo,
+    senderName: params.ctx.senderName ?? params.ctx.senderId,
+    senderId: params.ctx.senderId,
+    messageSid: params.ctx.messageId,
+    wasMentioned:
+      mentionedBot(params.ctx) ||
+      (params.ctx.mentionAll &&
+        resolveRespondToMentionAll({
+          groupConfig: params.groupConfig,
+          defaultConfig: params.defaultGroupConfig,
+          accountFeishuCfg: params.account.config,
+        })),
+    replyToBody: params.quotedContent,
+    inboundHistory,
+    extraFields: {
+      ...params.mediaPayload,
+      ...(groupSystemPrompt ? { GroupSystemPrompt: groupSystemPrompt } : {}),
+      ...(dc.ctx.threadId ? { MessageThreadId: dc.ctx.threadId } : {}),
+    },
+  });
+
+  // 10. Dispatch: system command vs. normal message
 
   // Resolve per-group skill filter (per-group > default "*")
   const skillFilter = dc.isGroup ? (params.groupConfig?.skills ?? params.defaultGroupConfig?.skills) : undefined;
