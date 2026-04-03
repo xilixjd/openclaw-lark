@@ -36,7 +36,10 @@ const log = larkLogger('plugin');
 // Re-exports for external consumers
 // ---------------------------------------------------------------------------
 
-export { monitorFeishuProvider } from './src/channel/monitor';
+export async function monitorFeishuProvider(opts?: unknown) {
+  const mod = await import('./src/channel/monitor');
+  return mod.monitorFeishuProvider(opts as never);
+}
 export { sendMessageFeishu, sendCardFeishu, updateCardFeishu, editMessageFeishu } from './src/messaging/outbound/send';
 export { getMessageFeishu } from './src/messaging/outbound/fetch';
 export {
