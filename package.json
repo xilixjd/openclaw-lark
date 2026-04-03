@@ -89,7 +89,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@larksuite/openclaw-lark-fork",
+      "npmSpec": "@larksuite/openclaw-lark",
       "localPath": "extensions/feishu",
       "defaultChoice": "npm"
     }
