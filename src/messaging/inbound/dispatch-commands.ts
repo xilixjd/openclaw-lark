@@ -12,6 +12,7 @@ import type { LarkClient } from '../../core/lark-client';
 import { larkLogger } from '../../core/lark-logger';
 import { ticketElapsed } from '../../core/lark-ticket';
 import { createFeishuReplyDispatcher } from '../../card/reply-dispatcher';
+import { startToolUseTraceRun } from '../../card/tool-use-trace-store';
 import { sendMessageFeishu } from '../outbound/send';
 import type { PermissionError } from './permission';
 import type { DispatchContext } from './dispatch-context';
@@ -54,6 +55,8 @@ export async function dispatchPermissionNotification(
     wasMentioned: false,
   });
 
+  startToolUseTraceRun(dc.threadSessionKey ?? dc.route.sessionKey);
+
   const {
     dispatcher: permDispatcher,
     replyOptions: permReplyOptions,
@@ -62,12 +65,18 @@ export async function dispatchPermissionNotification(
   } = createFeishuReplyDispatcher({
     cfg: dc.accountScopedCfg,
     agentId: dc.route.agentId,
-    sessionKey: dc.threadSessionKey ?? dc.route.sessionKey,
     chatId: dc.ctx.chatId,
+    sessionKey: dc.threadSessionKey ?? dc.route.sessionKey,
     replyToMessageId: replyToMessageId ?? dc.ctx.messageId,
     accountId: dc.account.accountId,
     chatType: dc.ctx.chatType,
     replyInThread: dc.isThread,
+    toolUseDisplay: {
+      mode: 'off',
+      showToolUse: false,
+      showToolResultDetails: false,
+      showFullPaths: false,
+    },
   });
 
   dc.log(`feishu[${dc.account.accountId}]: dispatching permission error notification to agent`);
@@ -98,6 +107,7 @@ export async function dispatchSystemCommand(
   replyToMessageId?: string,
 ): Promise<void> {
   let delivered = false;
+  const suppressToolDetails = isLifecycleSessionCommand(dc.ctx.content);
 
   dc.log(
     `feishu[${dc.account.accountId}]: detected system command, using plain-text dispatch`,
@@ -108,7 +118,11 @@ export async function dispatchSystemCommand(
     ctx: ctxPayload,
     cfg: dc.accountScopedCfg,
     dispatcherOptions: {
-      deliver: async (payload) => {
+      deliver: async (payload, info) => {
+        if (suppressToolDetails && info.kind === 'tool') {
+          return;
+        }
+
         const text = payload.text?.trim() ?? '';
         if (!text) return;
         await sendMessageFeishu({
@@ -135,4 +149,12 @@ export async function dispatchSystemCommand(
 
   dc.log(`feishu[${dc.account.accountId}]: system command dispatched (delivered=${delivered})`);
   log.info(`system command dispatched (delivered=${delivered}, elapsed=${ticketElapsed()}ms)`);
+}
+
+function isLifecycleSessionCommand(text: string | undefined): boolean {
+  if (!text) return false;
+  const match = text.trim().match(/^\/([^\s@]+)/);
+  if (!match) return false;
+  const command = match[1]?.toLowerCase();
+  return command === 'new' || command === 'reset';
 }

@@ -143,6 +143,12 @@ function createDispatcher(options: {
     replyInThread: false,
     chatType: 'p2p',
     skipTyping: true,
+    toolUseDisplay: {
+      mode: 'off',
+      showToolUse: false,
+      showToolResultDetails: false,
+      showFullPaths: false,
+    },
   });
 
   return {

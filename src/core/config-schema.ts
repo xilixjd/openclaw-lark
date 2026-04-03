@@ -190,6 +190,11 @@ export const FeishuAccountConfigSchema = z.object({
   replyMode: ReplyModeSchema,
   streaming: z.boolean().optional(),
   blockStreaming: z.boolean().optional(),
+  toolUseDisplay: z
+    .object({
+      showFullPaths: z.boolean().optional(),
+    })
+    .optional(),
   tools: FeishuToolsFlagSchema,
   footer: FeishuFooterSchema,
   markdown: MarkdownConfigSchema,

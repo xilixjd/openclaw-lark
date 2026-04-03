@@ -27,6 +27,8 @@ import {
 import { registerCommands } from './src/commands/index';
 import { larkLogger } from './src/core/lark-logger';
 import { emitSecurityWarnings } from './src/core/security-check';
+import { recordToolUseEnd, recordToolUseStart } from './src/card/tool-use-trace-store';
+import { sanitizeParamsForLog } from './src/card/reasoning-utils';
 
 const log = larkLogger('plugin');
 
@@ -125,18 +127,37 @@ const plugin = {
     // Register AskUserQuestion tool (interactive card-based user prompting)
     registerAskUserQuestionTool(api);
 
-    // ---- Tool call hooks (trace Feishu-owned tool invocations only) ----
-    api.on('before_tool_call', (event) => {
+    api.on('before_tool_call', (event, ctx) => {
+      recordToolUseStart({
+        sessionKey: ctx.sessionKey,
+        toolName: event.toolName,
+        toolParams: event.params,
+        toolCallId: event.toolCallId ?? ctx.toolCallId,
+        runId: event.runId ?? ctx.runId,
+      });
       if (!event.toolName.startsWith('feishu_')) return;
-      log.info(`tool call: ${event.toolName} params=${JSON.stringify(event.params)}`);
+      const paramsPreview = sanitizeParamsForLog(event.params);
+      log.info(`tool call: ${event.toolName} session=${ctx.sessionKey ?? '-'} params=${paramsPreview}`);
     });
 
-    api.on('after_tool_call', (event) => {
+    api.on('after_tool_call', (event, ctx) => {
+      recordToolUseEnd({
+        sessionKey: ctx.sessionKey,
+        toolName: event.toolName,
+        toolParams: event.params,
+        toolCallId: event.toolCallId ?? ctx.toolCallId,
+        runId: event.runId ?? ctx.runId,
+        result: event.result,
+        error: event.error,
+        durationMs: event.durationMs,
+      });
       if (!event.toolName.startsWith('feishu_')) return;
       if (event.error) {
-        log.error(`tool fail: ${event.toolName} ${event.error} (${event.durationMs ?? 0}ms)`);
+        log.error(
+          `tool fail: ${event.toolName} session=${ctx.sessionKey ?? '-'} ${event.error} (${event.durationMs ?? 0}ms)`,
+        );
       } else {
-        log.info(`tool done: ${event.toolName} ok (${event.durationMs ?? 0}ms)`);
+        log.info(`tool done: ${event.toolName} session=${ctx.sessionKey ?? '-'} ok (${event.durationMs ?? 0}ms)`);
       }
     });
 
