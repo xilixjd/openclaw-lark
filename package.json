@@ -1,6 +1,6 @@
 {
   "name": "@larksuite/openclaw-lark-fork",
-  "version": "2026.4.1",
+  "version": "2026.4.4",
   "description": "OpenClaw Lark/Feishu channel plugin",
   "type": "module",
   "exports": {
@@ -89,7 +89,7 @@
       "quickstartAllowFrom": true
     },
     "install": {
-      "npmSpec": "@larksuite/openclaw-lark",
+      "npmSpec": "@larksuite/openclaw-lark-fork",
       "localPath": "extensions/feishu",
       "defaultChoice": "npm"
     }

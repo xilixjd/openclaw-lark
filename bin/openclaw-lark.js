@@ -16,7 +16,7 @@ if (vIdx !== -1) {
   args.splice(vIdx, 2);
 }
 
-const allArgs = ['--yes', '--prefer-online', `@larksuite/openclaw-lark-tools@${version}`, ...args];
+const allArgs = ['--yes', '--prefer-online', `@larksuite/openclaw-lark-tools-fork@${version}`, ...args];
 
 try {
   if (process.platform === 'win32') {
