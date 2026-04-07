@@ -63,6 +63,7 @@ vi.mock('../src/messaging/inbound/dispatch-commands', () => ({
 
 vi.mock('../src/core/chat-info-cache', () => ({
   isThreadCapableGroup: vi.fn(),
+  injectLarkClient: vi.fn(),
 }));
 
 vi.mock('../src/core/targets', () => ({

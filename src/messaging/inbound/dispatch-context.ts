@@ -21,6 +21,7 @@ import {
   ensureDynamicAgentListedForRuntime,
   resolveDynamicAgentRouteOverride,
 } from './dynamic-agent';
+import { isCommentTarget } from '../../core/comment-target';
 
 const moduleLog = larkLogger('inbound/dispatch-context');
 
@@ -85,26 +86,37 @@ export function buildDispatchContext(params: {
   const runtime = ensureRuntime(params.runtime);
   const log = runtime.log;
   const error = runtime.error;
-  const isGroup = ctx.chatType === 'group';
+  const isComment = isCommentTarget(ctx.chatId);
+  const isGroup = !isComment && ctx.chatType === 'group';
   const isThread = isGroup && Boolean(ctx.threadId);
   const core = LarkClient.runtime;
 
   const feishuFrom = `feishu:${ctx.senderId}`;
-  const feishuTo = isGroup ? `chat:${ctx.chatId}` : `user:${ctx.senderId}`;
+  // Comment targets use the comment target string directly as the "To"
+  // so the outbound routing layer can detect it and route through Drive API.
+  const feishuTo = isComment
+    ? ctx.chatId
+    : isGroup
+      ? `chat:${ctx.chatId}`
+      : `user:${ctx.senderId}`;
 
   const envelopeFrom = isGroup ? `${ctx.chatId}:${ctx.senderId}` : ctx.senderId;
 
   const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(accountScopedCfg);
 
   // ---- Route resolution ----
+  // Comment targets use the comment target as the peer ID so each
+  // comment thread gets its own session key.
   const route = core.channel.routing.resolveAgentRoute({
     cfg: accountScopedCfg,
     channel: 'feishu',
     accountId: account.accountId,
-    peer: {
-      kind: isGroup ? 'group' : 'direct',
-      id: isGroup ? ctx.chatId : ctx.senderId,
-    },
+    peer: isComment
+      ? { kind: 'direct' as const, id: ctx.chatId }
+      : {
+        kind: isGroup ? ('group' as const) : ('direct' as const),
+        id: isGroup ? ctx.chatId : ctx.senderId,
+      },
   });
 
   // ---- Dynamic agent route override (optional) ----
@@ -114,7 +126,7 @@ export function buildDispatchContext(params: {
     accountId: account.accountId,
     senderId: ctx.senderId,
     chatType: isGroup ? 'group' : 'dm',
-    peerId: isGroup ? ctx.chatId : ctx.senderId,
+    peerId: isComment ? ctx.chatId : isGroup ? ctx.chatId : ctx.senderId,
   });
   if (dynamicOverride) {
     bootstrapDynamicAgent({
@@ -143,7 +155,7 @@ export function buildDispatchContext(params: {
 
   // ---- System event ----
   const sender = ctx.senderName ? `${ctx.senderName} (${ctx.senderId})` : ctx.senderId;
-  const location = isGroup ? `group ${ctx.chatId}` : 'DM';
+  const location = isComment ? `comment ${ctx.chatId}` : isGroup ? `group ${ctx.chatId}` : 'DM';
 
   const tags: string[] = [];
   tags.push(`msg:${ctx.messageId}`);
