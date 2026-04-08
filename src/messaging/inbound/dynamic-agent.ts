@@ -264,6 +264,7 @@ function upsertDynamicAgentIntoList(cfg: Record<string, unknown>, agentId: strin
   const agentsObj = cfg.agents as Record<string, unknown>;
   const currentList = Array.isArray(agentsObj.list) ? [...agentsObj.list] : [];
   const existing = new Set<string>();
+  const dynamicWorkspace = resolveDynamicWorkspaceDir(agentId);
 
   for (const entry of currentList) {
     if (entry && typeof entry === 'object') {
@@ -283,9 +284,28 @@ function upsertDynamicAgentIntoList(cfg: Record<string, unknown>, agentId: strin
     changed = true;
   }
 
-  if (!existing.has(agentId.trim().toLowerCase())) {
-    currentList.push({ id: agentId });
+  const normalizedAgentId = agentId.trim().toLowerCase();
+  const existingIndex = currentList.findIndex((entry) => {
+    if (!entry || typeof entry !== 'object') return false;
+    return String((entry as { id?: unknown }).id ?? '').trim().toLowerCase() === normalizedAgentId;
+  });
+
+  if (!existing.has(normalizedAgentId)) {
+    currentList.push({ id: agentId, workspace: dynamicWorkspace, default: false });
     changed = true;
+  } else if (existingIndex >= 0) {
+    const existingEntry = currentList[existingIndex] as Record<string, unknown>;
+    const existingWorkspace =
+      typeof existingEntry.workspace === 'string' ? existingEntry.workspace.trim() : '';
+    if (existingWorkspace !== dynamicWorkspace || existingEntry.default !== false) {
+      currentList[existingIndex] = {
+        ...existingEntry,
+        id: agentId,
+        workspace: dynamicWorkspace,
+        default: false,
+      };
+      changed = true;
+    }
   }
 
   if (changed) {
@@ -642,6 +662,7 @@ export function bootstrapDynamicAgent(params: {
   dynamicAgentId: string;
   sourceAgentId: string;
 }): void {
+  upsertDynamicAgentIntoList(params.cfg as unknown as Record<string, unknown>, params.dynamicAgentId);
   const dynamic = getDynamicAgentConfig(params.cfg);
   if (dynamic.workspaceSeed) {
     ensureDynamicWorkspaceSeeded({

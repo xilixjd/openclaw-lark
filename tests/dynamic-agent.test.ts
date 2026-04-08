@@ -128,10 +128,14 @@ describe('dynamic-agent routing', () => {
     expect(route.sessionKey).toContain('feishu-default-dm-ou_usera');
 
     const listed =
-      ((liveCfg as unknown as { agents?: { list?: Array<{ id?: string }> } })?.agents?.list ?? []).some(
+      ((liveCfg as unknown as { agents?: { list?: Array<{ id?: string; workspace?: string }> } })?.agents?.list ?? []).find(
         (entry) => entry?.id === route.agentId,
       );
-    expect(listed).toBe(true);
+    expect(listed).toMatchObject({
+      id: route.agentId,
+      workspace: path.join(root, `workspace-${route.agentId}`),
+      default: false,
+    });
 
     expect(fs.existsSync(path.join(root, 'agents', route.agentId, 'agent'))).toBe(true);
     await expect(readFile(path.join(root, `workspace-${route.agentId}`, 'AGENTS.md'), 'utf8')).resolves.toBe(
