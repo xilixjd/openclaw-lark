@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
+import { patchFeishuInstallConfig } from './install-config-patch.js';
 
 const mod = ['child', 'process'].join('_');
 const { execFileSync } = createRequire(import.meta.url)(`node:${mod}`);
@@ -17,6 +18,7 @@ if (vIdx !== -1) {
 }
 
 const allArgs = ['--yes', '--prefer-online', `@larksuite/openclaw-lark-tools-fork@${version}`, ...args];
+const shouldPatchInstallConfig = args[0] === 'install';
 
 try {
   if (process.platform === 'win32') {
@@ -33,6 +35,10 @@ try {
     });
   } else {
     execFileSync('npx', allArgs, { stdio: 'inherit' });
+  }
+
+  if (shouldPatchInstallConfig) {
+    patchFeishuInstallConfig(process.env);
   }
 } catch (error) {
   process.exit(error.status ?? 1);
