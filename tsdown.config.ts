@@ -8,6 +8,7 @@ export default defineConfig({
   clean: true,
   outDir: 'dist',
   dts: true,
+  unbundle: true,
   deps: {
     neverBundle: [
       /^openclaw(\/.*)?$/,
