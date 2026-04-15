@@ -63,23 +63,10 @@ async function applyDynamicRoutingInCaller(params: {
 
 describe('dynamic-agent routing', () => {
   const root = path.join('/tmp', `openclaw-lark-dynamic-agent-${process.pid}`);
-  const watchCallbacks = new Map<string, fs.WatchListener<string>>();
-
-  beforeEach(() => {
-    watchCallbacks.clear();
-    vi.spyOn(fs, 'watch').mockImplementation(((target: fs.PathLike, listener: fs.WatchListener<string>) => {
-      watchCallbacks.set(path.resolve(String(target)), listener);
-      return {
-        close: vi.fn(),
-        on: vi.fn().mockReturnThis(),
-      } as unknown as fs.FSWatcher;
-    }) as typeof fs.watch);
-  });
 
   afterEach(async () => {
     resetDynamicAgentStateForTests();
     vi.unstubAllEnvs();
-    vi.restoreAllMocks();
     await rm(root, { recursive: true, force: true });
   });
 
@@ -227,9 +214,6 @@ describe('dynamic-agent routing', () => {
       ['---', 'name: added-skill', 'description: Added skill description', '---', '', 'body'].join('\n'),
     );
 
-    const watchedSkillsDir = path.resolve(path.join(root, `workspace-${route.agentId}`, 'skills'));
-    watchCallbacks.get(watchedSkillsDir)?.('rename', 'added-skill');
-
     const note = consumeDynamicSkillsDeltaNote(route.agentId);
     expect(note).toContain('[Runtime note: workspace skills changed]');
     expect(note).toContain('added: added-skill');
@@ -237,6 +221,49 @@ describe('dynamic-agent routing', () => {
 
     const second = consumeDynamicSkillsDeltaNote(route.agentId);
     expect(second).toBeUndefined();
+  });
+
+  it('does not emit added notes for pre-existing skills after startup', async () => {
+    vi.stubEnv('OPENCLAW_STATE_DIR', root);
+
+    const sourceWorkspace = path.join(root, 'workspace-main');
+    const sourceSkillDir = path.join(sourceWorkspace, 'skills', 'example-skill');
+    await mkdir(sourceSkillDir, { recursive: true });
+    await writeFile(path.join(sourceWorkspace, 'AGENTS.md'), 'source agents');
+    await writeFile(path.join(sourceSkillDir, 'SKILL.md'), 'version 1');
+
+    const cfg = {
+      channels: {
+        feishu: {
+          dynamicAgents: { enabled: true, workspaceSeed: true },
+        },
+      },
+      agents: {
+        list: [{ id: 'main' }],
+      },
+    } as unknown as ClawdbotConfig;
+
+    const runtime = {
+      config: {
+        loadConfig: vi.fn(() => cfg),
+        writeConfigFile: vi.fn(),
+      },
+    } as unknown as PluginRuntime;
+
+    const route = makeBaseRoute();
+    const applied = await applyDynamicRoutingInCaller({
+      cfg,
+      route,
+      accountId: 'default',
+      senderId: 'ou_existing_user',
+      chatType: 'dm',
+      peerId: 'ou_existing_user',
+      runtime,
+    });
+    expect(applied).toBe(route.agentId);
+
+    const note = consumeDynamicSkillsDeltaNote(route.agentId);
+    expect(note).toBeUndefined();
   });
 
   it('creates dynamic agent directory when dynamic route is enabled', async () => {
