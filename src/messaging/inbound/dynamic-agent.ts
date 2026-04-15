@@ -52,6 +52,7 @@ interface DynamicSkillDelta {
   skillName: string;
   changeType: 'added' | 'updated' | 'removed';
   skillFilePath: string;
+  skillDescription?: string;
 }
 
 interface DynamicSkillsDeltaState {
@@ -466,12 +467,56 @@ function recordDynamicSkillDelta(
   skillName: string,
   changeType: DynamicSkillDelta['changeType'],
   skillFilePath: string,
+  skillDescription?: string,
 ): void {
   const existing = dynamicSkillsDeltaState.get(agentId) ?? {
     changes: new Map<string, DynamicSkillDelta>(),
   };
-  existing.changes.set(skillName, { skillName, changeType, skillFilePath });
+  existing.changes.set(skillName, {
+    skillName,
+    changeType,
+    skillFilePath,
+    ...(skillDescription ? { skillDescription } : {}),
+  });
   dynamicSkillsDeltaState.set(agentId, existing);
+}
+
+function parseSkillDescriptionLine(line: string): string | undefined {
+  const matched = line.match(/^\s*description\s*:\s*(.+?)\s*$/i);
+  if (!matched) return undefined;
+  const value = matched[1]?.trim();
+  if (!value) return undefined;
+  return value.replace(/^['"]|['"]$/g, '').trim() || undefined;
+}
+
+function readSkillDescription(skillFilePath: string): string | undefined {
+  if (!fs.existsSync(skillFilePath)) return undefined;
+
+  let content = '';
+  try {
+    content = fs.readFileSync(skillFilePath, 'utf8');
+  } catch {
+    return undefined;
+  }
+
+  const lines = content.replace(/^\uFEFF/, '').split(/\r?\n/);
+  if (lines.length === 0) return undefined;
+
+  if (lines[0]?.trim() === '---') {
+    for (let i = 1; i < lines.length; i += 1) {
+      const line = lines[i];
+      if (line.trim() === '---' || line.trim() === '...') break;
+      const description = parseSkillDescriptionLine(line);
+      if (description) return description;
+    }
+    return undefined;
+  }
+
+  for (const line of lines) {
+    const description = parseSkillDescriptionLine(line);
+    if (description) return description;
+  }
+  return undefined;
 }
 
 function noteDynamicSkillFileChange(agentId: string, skillDir: string): void {
@@ -519,7 +564,7 @@ function syncDynamicSkillsChildWatchers(agentId: string, skillsDir: string, incl
           watchSkillChildDir(agentId, childDir);
           const skillFilePath = path.join(childDir, 'SKILL.md');
           if (includeAdds && fs.existsSync(skillFilePath)) {
-            recordDynamicSkillDelta(agentId, entry.name, 'added', skillFilePath);
+            recordDynamicSkillDelta(agentId, entry.name, 'added', skillFilePath, readSkillDescription(skillFilePath));
           }
         }
       }
@@ -690,7 +735,11 @@ export function consumeDynamicSkillsDeltaNote(agentId: string): string | undefin
   ];
 
   for (const change of state.changes.values()) {
-    lines.push(`- ${change.changeType}: ${change.skillName} (${change.skillFilePath})`);
+    const descriptionSuffix =
+      change.changeType === 'added' && change.skillDescription
+        ? `; description: ${change.skillDescription}`
+        : '';
+    lines.push(`- ${change.changeType}: ${change.skillName} (${change.skillFilePath})${descriptionSuffix}`);
   }
 
   lines.push('If the current task may use one of these skills, re-read the listed SKILL.md before relying on it.');

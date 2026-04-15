@@ -220,14 +220,20 @@ describe('dynamic-agent routing', () => {
     });
     expect(applied).toBe(route.agentId);
 
-    const targetSkillFile = path.join(root, `workspace-${route.agentId}`, 'skills', 'example-skill', 'SKILL.md');
-    await writeFile(targetSkillFile, 'version 2');
-    const watchedChildDir = path.resolve(path.dirname(targetSkillFile));
-    watchCallbacks.get(watchedChildDir)?.('change', 'SKILL.md');
+    const addedSkillDir = path.join(root, `workspace-${route.agentId}`, 'skills', 'added-skill');
+    await mkdir(addedSkillDir, { recursive: true });
+    await writeFile(
+      path.join(addedSkillDir, 'SKILL.md'),
+      ['---', 'name: added-skill', 'description: Added skill description', '---', '', 'body'].join('\n'),
+    );
+
+    const watchedSkillsDir = path.resolve(path.join(root, `workspace-${route.agentId}`, 'skills'));
+    watchCallbacks.get(watchedSkillsDir)?.('rename', 'added-skill');
 
     const note = consumeDynamicSkillsDeltaNote(route.agentId);
     expect(note).toContain('[Runtime note: workspace skills changed]');
-    expect(note).toContain('example-skill');
+    expect(note).toContain('added: added-skill');
+    expect(note).toContain('description: Added skill description');
 
     const second = consumeDynamicSkillsDeltaNote(route.agentId);
     expect(second).toBeUndefined();
