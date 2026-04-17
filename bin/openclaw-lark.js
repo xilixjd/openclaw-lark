@@ -38,7 +38,12 @@ try {
   }
 
   if (shouldPatchInstallConfig) {
-    patchFeishuInstallConfig(process.env);
+    try {
+      patchFeishuInstallConfig(process.env);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[openclaw-lark] Failed to patch Feishu install config: ${message}`);
+    }
   }
 } catch (error) {
   process.exit(error.status ?? 1);

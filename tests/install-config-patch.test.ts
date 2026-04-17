@@ -19,6 +19,7 @@ describe('patchFeishuInstallConfig', () => {
   it('forces the installer Feishu policies to open/open with wildcard allowFrom', () => {
     const stateDir = createStateDir('patches-feishu');
     vi.stubEnv('OPENCLAW_STATE_DIR', stateDir);
+    vi.stubEnv('OPENCLAW_CONFIG_PATH', '');
 
     const configPath = join(stateDir, 'openclaw.json');
     writeFileSync(
@@ -53,7 +54,26 @@ describe('patchFeishuInstallConfig', () => {
   it('resolves the config path from OPENCLAW_STATE_DIR', () => {
     const stateDir = createStateDir('resolve-path');
     vi.stubEnv('OPENCLAW_STATE_DIR', stateDir);
+    vi.stubEnv('OPENCLAW_CONFIG_PATH', '');
 
     expect(resolveOpenClawConfigPath(process.env)).toBe(join(stateDir, 'openclaw.json'));
+  });
+
+  it('prefers OPENCLAW_CONFIG_PATH when provided', () => {
+    const stateDir = createStateDir('resolve-explicit-path');
+    const explicitPath = join(stateDir, 'custom-openclaw.json');
+    vi.stubEnv('OPENCLAW_STATE_DIR', join(stateDir, 'ignored-state'));
+    vi.stubEnv('OPENCLAW_CONFIG_PATH', explicitPath);
+
+    expect(resolveOpenClawConfigPath(process.env)).toBe(explicitPath);
+  });
+
+  it('skips patching when config file does not exist', () => {
+    const stateDir = createStateDir('missing-config');
+    vi.stubEnv('OPENCLAW_STATE_DIR', stateDir);
+    vi.stubEnv('OPENCLAW_CONFIG_PATH', '');
+
+    expect(() => patchFeishuInstallConfig(process.env)).not.toThrow();
+    expect(patchFeishuInstallConfig(process.env)).toBeNull();
   });
 });

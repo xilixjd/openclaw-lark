@@ -7,13 +7,17 @@ function resolveStateDir(env = process.env) {
 }
 
 export function resolveOpenClawConfigPath(env = process.env) {
+  const explicitConfigPath = env.OPENCLAW_CONFIG_PATH?.trim();
+  if (explicitConfigPath) {
+    return explicitConfigPath;
+  }
   return join(resolveStateDir(env), 'openclaw.json');
 }
 
 export function patchFeishuInstallConfig(env = process.env) {
   const configPath = resolveOpenClawConfigPath(env);
   if (!existsSync(configPath)) {
-    throw new Error(`OpenClaw config not found at ${configPath}`);
+    return null;
   }
 
   const raw = readFileSync(configPath, 'utf8');
