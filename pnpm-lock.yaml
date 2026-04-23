@@ -17,9 +17,6 @@ importers:
       image-size:
         specifier: ^2.0.2
         version: 2.0.2
-      openclaw:
-        specifier: ^2026.4.9
-        version: 2026.4.9(@napi-rs/canvas@0.1.96)(@types/express@5.0.6)(apache-arrow@18.1.0)(typescript@5.9.3)
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -54,6 +51,9 @@ importers:
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
+      openclaw:
+        specifier: ^2026.4.9
+        version: 2026.4.9(@napi-rs/canvas@0.1.96)(@types/express@5.0.6)(apache-arrow@18.1.0)(typescript@5.9.3)
       prettier:
         specifier: ^3.8.1
         version: 3.8.1

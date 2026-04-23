@@ -31,7 +31,7 @@ function hasRuntimeOpenClawSdkImport(source: string): boolean {
 }
 
 describe('package manifest runtime dependencies', () => {
-  it('declares openclaw as an install-time dependency when runtime sdk imports exist', () => {
+  it('declares openclaw as a host peer and local dev dependency when runtime sdk imports exist', () => {
     const files = [path.join(repoRoot, 'index.ts'), ...collectTsFiles(path.join(repoRoot, 'src'))];
     const runtimeImportFiles = files
       .filter((file) => hasRuntimeOpenClawSdkImport(readFileSync(file, 'utf8')))
@@ -39,6 +39,7 @@ describe('package manifest runtime dependencies', () => {
 
     const pkg = JSON.parse(readFileSync(path.join(repoRoot, 'package.json'), 'utf8')) as {
       dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
       peerDependencies?: Record<string, string>;
     };
 
@@ -46,10 +47,11 @@ describe('package manifest runtime dependencies', () => {
       runtimeImportFiles.length,
       'update this test if the packaging strategy changes and runtime OpenClaw SDK imports are removed',
     ).toBeGreaterThan(0);
-    expect(
-      pkg.dependencies?.openclaw,
-      `runtime OpenClaw SDK imports require an installed openclaw package: ${runtimeImportFiles.join(', ')}`,
-    ).toBeTruthy();
+    expect(pkg.dependencies?.openclaw).toBeFalsy();
     expect(pkg.peerDependencies?.openclaw).toBeTruthy();
+    expect(
+      pkg.devDependencies?.openclaw,
+      `runtime OpenClaw SDK imports require local dev to install openclaw: ${runtimeImportFiles.join(', ')}`,
+    ).toBeTruthy();
   });
 });

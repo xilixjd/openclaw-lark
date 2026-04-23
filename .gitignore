@@ -24,3 +24,4 @@ src/tools/docs/
 /**/.DS_Store
 
 .eslintcache
+.npm-pack-package.json.bak
