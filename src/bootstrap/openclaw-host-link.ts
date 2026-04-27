@@ -1,4 +1,5 @@
 import { access, lstat, mkdir, readFile, symlink } from 'node:fs/promises';
+import { accessSync, lstatSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -36,12 +37,33 @@ async function pathExists(targetPath: string): Promise<boolean> {
   }
 }
 
+function pathExistsSync(targetPath: string): boolean {
+  try {
+    accessSync(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function isOpenClawPackageRoot(candidateRoot: string): Promise<boolean> {
   const manifestPath = path.join(candidateRoot, 'package.json');
   if (!(await pathExists(manifestPath))) return false;
 
   try {
     const manifest = JSON.parse(await readFile(manifestPath, 'utf8')) as { name?: unknown };
+    return manifest.name === 'openclaw';
+  } catch {
+    return false;
+  }
+}
+
+function isOpenClawPackageRootSync(candidateRoot: string): boolean {
+  const manifestPath = path.join(candidateRoot, 'package.json');
+  if (!pathExistsSync(manifestPath)) return false;
+
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: unknown };
     return manifest.name === 'openclaw';
   } catch {
     return false;
@@ -80,10 +102,33 @@ async function findHostOpenClawRoot(pluginRoot: string): Promise<string | undefi
   return undefined;
 }
 
+function findHostOpenClawRootSync(pluginRoot: string): string | undefined {
+  for (const candidate of collectHostRootCandidates(pluginRoot)) {
+    if (isOpenClawPackageRootSync(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
 async function canResolveOpenClawFrom(pluginRoot: string): Promise<boolean> {
+  if (await isOpenClawPackageRoot(path.join(pluginRoot, 'node_modules', 'openclaw'))) return true;
+
   try {
     const requireFromPlugin = createRequire(path.join(pluginRoot, 'package.json'));
-    requireFromPlugin.resolve('openclaw/package.json');
+    requireFromPlugin.resolve('openclaw/plugin-sdk');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function canResolveOpenClawFromSync(pluginRoot: string): boolean {
+  if (isOpenClawPackageRootSync(path.join(pluginRoot, 'node_modules', 'openclaw'))) return true;
+
+  try {
+    const requireFromPlugin = createRequire(path.join(pluginRoot, 'package.json'));
+    requireFromPlugin.resolve('openclaw/plugin-sdk');
     return true;
   } catch {
     return false;
@@ -106,26 +151,62 @@ async function ensureOpenClawSymlink(pluginRoot: string, hostRoot: string): Prom
   await symlink(linkTarget, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
 }
 
+function ensureOpenClawSymlinkSync(pluginRoot: string, hostRoot: string): void {
+  const nodeModulesDir = path.join(pluginRoot, 'node_modules');
+  const linkPath = path.join(nodeModulesDir, 'openclaw');
+
+  try {
+    const stat = lstatSync(linkPath);
+    if (stat.isSymbolicLink() || stat.isDirectory()) return;
+  } catch {
+    // Missing link is expected on first run.
+  }
+
+  mkdirSync(nodeModulesDir, { recursive: true });
+  const linkTarget = path.relative(nodeModulesDir, hostRoot) || '.';
+  symlinkSync(linkTarget, linkPath, process.platform === 'win32' ? 'junction' : 'dir');
+}
+
+function buildOpenClawResolutionError(pluginRoot: string): Error {
+  return new Error(
+    [
+      'Unable to resolve runtime package "openclaw" for the Feishu plugin.',
+      `pluginRoot=${pluginRoot}`,
+      `cwd=${process.cwd()}`,
+      `argv1=${process.argv[1] ?? ''}`,
+      'Set OPENCLAW_HOST_ROOT to the OpenClaw package root if the host layout is non-standard.',
+    ].join(' '),
+  );
+}
+
 export async function ensureOpenClawPackageResolution(entryUrl: string): Promise<void> {
   const pluginRoot = resolvePluginRootFromEntryUrl(entryUrl);
   if (await canResolveOpenClawFrom(pluginRoot)) return;
 
   const hostRoot = await findHostOpenClawRoot(pluginRoot);
   if (!hostRoot) {
-    throw new Error(
-      [
-        'Unable to resolve runtime package "openclaw" for the Feishu plugin.',
-        `pluginRoot=${pluginRoot}`,
-        `cwd=${process.cwd()}`,
-        `argv1=${process.argv[1] ?? ''}`,
-        'Set OPENCLAW_HOST_ROOT to the OpenClaw package root if the host layout is non-standard.',
-      ].join(' '),
-    );
+    throw buildOpenClawResolutionError(pluginRoot);
   }
 
   await ensureOpenClawSymlink(pluginRoot, hostRoot);
 
   if (!(await canResolveOpenClawFrom(pluginRoot))) {
+    throw new Error(`Linked host OpenClaw package but resolution still failed: ${hostRoot}`);
+  }
+}
+
+export function ensureOpenClawPackageResolutionSync(entryUrl: string): void {
+  const pluginRoot = resolvePluginRootFromEntryUrl(entryUrl);
+  if (canResolveOpenClawFromSync(pluginRoot)) return;
+
+  const hostRoot = findHostOpenClawRootSync(pluginRoot);
+  if (!hostRoot) {
+    throw buildOpenClawResolutionError(pluginRoot);
+  }
+
+  ensureOpenClawSymlinkSync(pluginRoot, hostRoot);
+
+  if (!canResolveOpenClawFromSync(pluginRoot)) {
     throw new Error(`Linked host OpenClaw package but resolution still failed: ${hostRoot}`);
   }
 }
