@@ -1,5 +1,5 @@
 import { access, lstat, mkdir, readFile, symlink } from 'node:fs/promises';
-import { accessSync, lstatSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
+import { accessSync, lstatSync, mkdirSync, readFileSync, realpathSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -10,6 +10,17 @@ function normalizeCandidatePath(input: string | undefined): string | undefined {
   const trimmed = input?.trim();
   if (!trimmed) return undefined;
   return path.resolve(trimmed);
+}
+
+function resolveRealPath(input: string | undefined): string | undefined {
+  const resolved = normalizeCandidatePath(input);
+  if (!resolved) return undefined;
+
+  try {
+    return realpathSync(resolved);
+  } catch {
+    return resolved;
+  }
 }
 
 export function resolvePluginRootFromEntryUrl(entryUrl: string): string {
@@ -81,14 +92,32 @@ function collectHostRootCandidates(pluginRoot: string): string[] {
     out.push(resolved);
   };
 
+  const addExecutableCandidates = (executablePath: string | undefined) => {
+    const executable = normalizeCandidatePath(executablePath);
+    if (!executable) return;
+
+    add(path.dirname(executable));
+
+    const realExecutable = resolveRealPath(executable);
+    if (realExecutable && realExecutable !== executable) {
+      add(path.dirname(realExecutable));
+    }
+
+    for (const candidate of [executable, realExecutable]) {
+      if (!candidate) continue;
+      const binDir = path.dirname(candidate);
+      const prefixDir = path.basename(binDir) === 'bin' ? path.dirname(binDir) : undefined;
+      add(prefixDir ? path.join(prefixDir, 'lib', 'node_modules', 'openclaw') : undefined);
+    }
+  };
+
   add(process.env.OPENCLAW_HOST_ROOT);
   add(process.env.OPENCLAW_ROOT);
   add(inferOpenClawHostRootFromPluginRoot(pluginRoot));
 
-  const argv1 = process.argv[1] ? path.dirname(process.argv[1]) : undefined;
-  add(argv1);
+  addExecutableCandidates(process.argv[1]);
   add(process.cwd());
-  add(path.dirname(process.execPath));
+  addExecutableCandidates(process.execPath);
 
   return out;
 }
