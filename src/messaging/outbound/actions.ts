@@ -169,7 +169,7 @@ export const feishuMessageActions: ChannelMessageActionAdapter = {
     }
     return {
       actions: Array.from(SUPPORTED_ACTIONS),
-      capabilities: ['cards'],
+      capabilities: ['presentation'],
       schema: null,
     };
   },

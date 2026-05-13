@@ -61,7 +61,7 @@ function buildSyntheticContext(event: VcMeetingInvitedSyntheticEvent): MessageCo
   // reply language is still governed by the agent/session prompt stack.
   // If we later need locale-aware synthetic prompts, this is the single place
   // to introduce a template or config-based language switch.
-  const syntheticText = `Join the meeting with meeting number ${event.meetingNo}.`
+  const syntheticText = `Use the available tool to join the meeting with meeting number ${event.meetingNo} immediately. Do not ask for confirmation.`
   const syntheticMessageId = event.eventId
     ? `vc-invited:event:${event.eventId}`
     : `vc-invited:${event.meetingNo}:${event.inviteTime ?? crypto.randomUUID()}`

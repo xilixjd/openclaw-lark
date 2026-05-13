@@ -32,6 +32,68 @@ import {
 const log = larkLogger('outbound/media');
 
 // ---------------------------------------------------------------------------
+// Retry helpers
+// ---------------------------------------------------------------------------
+
+/** HTTP status codes that are safe to retry (transient server errors). */
+const RETRYABLE_STATUS_CODES = new Set([502, 503, 504]);
+
+/** Maximum number of retry attempts for transient failures. */
+const MEDIA_RETRY_MAX = 2;
+
+/** Base delay (ms) between retries — actual delay = base * attempt. */
+const MEDIA_RETRY_DELAY_MS = 1000;
+
+/**
+ * Run an async operation with bounded retries for transient HTTP errors.
+ *
+ * Only retries when the error carries a recognised retryable HTTP status
+ * code. All other errors are thrown immediately.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  label: string,
+  maxRetries = MEDIA_RETRY_MAX,
+): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const status = extractHttpStatus(err);
+      if (status == null || !RETRYABLE_STATUS_CODES.has(status) || attempt >= maxRetries) {
+        throw err;
+      }
+      const delay = MEDIA_RETRY_DELAY_MS * (attempt + 1);
+      log.warn(
+        `${label}: HTTP ${status}, retrying (${attempt + 1}/${maxRetries}) after ${delay}ms`,
+      );
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Best-effort extraction of an HTTP status code from an unknown error.
+ * Returns `undefined` when the error does not carry status information.
+ */
+function extractHttpStatus(err: unknown): number | undefined {
+  if (err != null && typeof err === 'object') {
+    const obj = err as Record<string, unknown>;
+    if (typeof obj.status === 'number') return obj.status;
+    if (typeof obj.statusCode === 'number') return obj.statusCode;
+    // Some SDK wrappers embed status in the message string.
+    if (typeof obj.message === 'string') {
+      const m = obj.message.match(/\b(50[2-4])\b/);
+      if (m) return Number(m[1]);
+    }
+  }
+  return undefined;
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -234,15 +296,19 @@ export async function downloadMessageResourceFeishu(params: {
 
   const client = LarkClient.fromCfg(cfg, accountId).sdk;
 
-  const response = await client.im.messageResource.get({
-    path: {
-      message_id: messageId,
-      file_key: fileKey,
-    },
-    params: {
-      type,
-    },
-  });
+  const response = await withRetry(
+    () =>
+      client.im.messageResource.get({
+        path: {
+          message_id: messageId,
+          file_key: fileKey,
+        },
+        params: {
+          type,
+        },
+      }),
+    `downloadMessageResource(${fileKey})`,
+  );
 
   const { buffer, contentType } = await extractBufferFromResponse(response);
 
@@ -972,16 +1038,23 @@ async function fetchMediaBuffer(urlOrPath: string, localRoots?: readonly string[
 
   const FETCH_TIMEOUT_MS = 30_000;
   log.info(`fetching remote media: ${raw}`);
-  const response = await fetch(raw, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-  if (!response.ok) {
-    throw new Error(
-      `[feishu-media] Failed to fetch media from "${raw}": ` +
-        `HTTP ${response.status} ${response.statusText}. ` +
-        `Verify the URL is accessible and returns a valid media resource.`,
-    );
-  }
 
-  const arrayBuffer = await response.arrayBuffer();
+  // Retry transient server errors (502/503/504) with bounded backoff.
+  const arrayBuffer = await withRetry(async () => {
+    const response = await fetch(raw, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    if (!response.ok) {
+      // Attach status so withRetry can inspect it.
+      const err: Error & { status?: number } = new Error(
+        `[feishu-media] Failed to fetch media from "${raw}": ` +
+          `HTTP ${response.status} ${response.statusText}. ` +
+          `Verify the URL is accessible and returns a valid media resource.`,
+      );
+      err.status = response.status;
+      throw err;
+    }
+    return response.arrayBuffer();
+  }, `fetchMedia(${raw})`);
+
   log.debug(`remote media fetched: ${raw}, ${arrayBuffer.byteLength} bytes`);
   return Buffer.from(arrayBuffer);
 }

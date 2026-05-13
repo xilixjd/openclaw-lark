@@ -132,6 +132,8 @@ export interface CreateFeishuReplyDispatcherParams {
   skipTyping?: boolean;
   /** When true, replies are sent into the thread instead of main chat. */
   replyInThread?: boolean;
+  /** Thread root id when the reply lives inside a thread; used for sentinel keying. */
+  threadId?: string;
   toolUseDisplay: ToolUseDisplayConfig;
 }
 
@@ -168,6 +170,7 @@ export interface FooterSessionMetrics {
 
 export interface StreamingCardDeps {
   cfg: ClawdbotConfig;
+  agentId: string;
   sessionKey: string;
   accountId: string | undefined;
   chatId: string;

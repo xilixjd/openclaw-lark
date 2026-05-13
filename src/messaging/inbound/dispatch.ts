@@ -51,6 +51,7 @@ import {
   buildInboundPayload,
   buildMessageBody,
 } from './dispatch-builders';
+import { getSentinelStore } from './sentinel-store';
 import { type DispatchContext, buildDispatchContext, resolveThreadSessionKey } from './dispatch-context';
 import type { PermissionError } from './permission';
 import { mentionedBot } from './mention';
@@ -396,6 +397,7 @@ async function dispatchNormalMessage(
     chatType: dc.ctx.chatType,
     skipTyping,
     replyInThread: dc.isThread,
+    threadId: dc.isThread ? dc.ctx.threadId : undefined,
     toolUseDisplay,
   });
 
@@ -525,8 +527,14 @@ export async function dispatchToAgent(params: {
     });
   }
 
+  // Consume any pending mention sentinels for this thread. Take and
+  // delete is one shot per inbound — capture once, hand to both body
+  // builders below.
+  const sentinelKey = threadScopedKey(dc.ctx.chatId, dc.isThread ? dc.ctx.threadId : undefined);
+  const sentinels = getSentinelStore(dc.account.accountId).consumeSentinels(sentinelKey);
+
   // 2. Build annotated message body
-  const messageBody = buildMessageBody(inboundCtx, params.quotedContent);
+  const messageBody = buildMessageBody(inboundCtx, params.quotedContent, sentinels);
 
   // 3. Permission-error notification (optional side-effect).
   //    Isolated so a failure here does not block the main message dispatch.
@@ -552,7 +560,7 @@ export async function dispatchToAgent(params: {
   // 5. Build BodyForAgent with mention annotation (if any).
   //    SDK >= 2026.2.10 no longer falls back to Body for BodyForAgent,
   //    so we must set it explicitly to preserve the annotation.
-  const bodyForAgent = buildBodyForAgent(inboundCtx);
+  const bodyForAgent = buildBodyForAgent(inboundCtx, sentinels);
 
   // 6. Build InboundHistory for SDK metadata injection (>= 2026.2.10).
   //    The SDK's buildInboundUserContextPrefix renders these as structured

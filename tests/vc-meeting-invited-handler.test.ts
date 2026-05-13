@@ -76,7 +76,7 @@ describe('handleFeishuVcMeetingInvited', () => {
           messageId: 'vc-invited:event:evt_vc_123',
           senderId: 'ou_inviter_1',
           chatType: 'p2p',
-          content: 'Join the meeting with meeting number 123456789.',
+          content: 'Use the available tool to join the meeting with meeting number 123456789 immediately. Do not ask for confirmation.',
         }),
         extraInboundFields: expect.objectContaining({
           SyntheticEventType: 'vc.bot.meeting_invited_v1',

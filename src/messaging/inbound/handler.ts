@@ -4,14 +4,16 @@
  *
  * Inbound message handling pipeline for the Lark/Feishu channel plugin.
  *
- * Orchestrates a seven-stage pipeline:
+ * Orchestrates a nine-stage pipeline:
  *   1. Account resolution
  *   2. Event parsing         → parse.ts (merge_forward expanded in-place)
- *   3. Sender enrichment     → enrich.ts (lightweight, before gate)
- *   4. Policy gate           → gate.ts
- *   5. User name prefetch    → enrich.ts (batch cache warm-up)
- *   6. Content resolution    → enrich.ts (media / quote, parallel)
- *   7. Agent dispatch        → dispatch.ts
+ *   3. Empty-message guard   → early return for text-less, media-less messages
+ *   4. Sender enrichment     → enrich.ts (lightweight, before gate)
+ *   5. Policy gate           → gate.ts
+ *   6. User name prefetch    → enrich.ts (batch cache warm-up)
+ *   7. Content resolution    → enrich.ts (media / quote, parallel)
+ *   8. Command authorization → plugin-sdk/command-auth
+ *   9. Agent dispatch        → dispatch.ts
  */
 
 import type { ClawdbotConfig, RuntimeEnv } from 'openclaw/plugin-sdk';
@@ -95,7 +97,17 @@ export async function handleFeishuMessage(params: {
     accountId: account.accountId,
   });
 
-  // 3. Enrich (lightweight): sender name + permission error tracking
+  // 3. Early reject: skip empty-text messages with no media resources.
+  //    OpenClaw 2026.4.29 adds a core-side guard for this (##74634), but
+  //    rejecting here avoids wasting cycles on enrichment, gate, and
+  //    dispatch for messages that would be silently dropped at the deliver
+  //    callback anyway.
+  if (!ctx.content.trim() && ctx.resources.length === 0) {
+    log(`feishu[${account.accountId}]: empty message ${ctx.messageId} (no text, no media), skipping`);
+    return;
+  }
+
+  // 4. Enrich (lightweight): sender name + permission error tracking
   const { ctx: enrichedCtx, permissionError } = await resolveSenderInfo({
     ctx,
     account,
@@ -111,7 +123,7 @@ export async function handleFeishuMessage(params: {
     accountFeishuCfg?.historyLimit ?? accountScopedCfg.messages?.groupChat?.historyLimit ?? DEFAULT_GROUP_HISTORY_LIMIT,
   );
 
-  // 4. Gate: policy / access-control checks (skipped for synthetic messages)
+  // 5. Gate: policy / access-control checks (skipped for synthetic messages)
   const gate = forceMention
     ? ({ allowed: true } as GateResult)
     : await checkMessageGate({ ctx, accountFeishuCfg, account, accountScopedCfg, log });
@@ -132,17 +144,17 @@ export async function handleFeishuMessage(params: {
     return;
   }
 
-  // 5. Batch pre-warm user name cache (sender + mentions)
+  // 6. Batch pre-warm user name cache (sender + mentions)
   await prefetchUserNames({ ctx, account, log });
 
-  // 6. Enrich (heavyweight, after gate — parallel where possible)
+  // 7. Enrich (heavyweight, after gate — parallel where possible)
   const enrichParams = { ctx, accountScopedCfg, account, log };
   const [mediaResult, quotedContent] = await Promise.all([
     resolveMedia(enrichParams),
     resolveQuotedContent(enrichParams),
   ]);
 
-  // 6b. Replace Feishu file-key placeholders in content with local
+  // 7b. Replace Feishu file-key placeholders in content with local
   //     file paths so the SDK can detect images for native vision and
   //     the AI receives meaningful file references.
   if (mediaResult.mediaList.length > 0) {
@@ -152,7 +164,7 @@ export async function handleFeishuMessage(params: {
     };
   }
 
-  // 7. Compute commandAuthorized via SDK access group command gating
+  // 8. Compute commandAuthorized via SDK access group command gating
   const core = LarkClient.runtime;
   const isGroup = ctx.chatType === 'group';
   const dmPolicy = accountFeishuCfg?.dmPolicy ?? 'pairing';
@@ -201,7 +213,7 @@ export async function handleFeishuMessage(params: {
     resolveCommandAuthorizedFromAuthorizers: core.channel.commands.resolveCommandAuthorizedFromAuthorizers,
   });
 
-  // 8. Dispatch to agent
+  // 9. Dispatch to agent
   // groupConfig and defaultGroupConfig are already resolved above.
 
   try {

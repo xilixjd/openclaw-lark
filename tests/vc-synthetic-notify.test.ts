@@ -121,7 +121,7 @@ describe('dispatchToAgent synthetic VC notification', () => {
         senderId: 'ou_inviter_1',
         senderName: 'Alice',
         chatType: 'p2p',
-        content: 'Join the meeting with meeting number 879900967.',
+        content: 'Use the available tool to join the meeting with meeting number 879900967 immediately. Do not ask for confirmation.',
         contentType: 'text',
         resources: [],
         mentions: [],
